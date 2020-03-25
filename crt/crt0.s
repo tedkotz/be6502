@@ -25,14 +25,9 @@
 _init:    LDX     #$FF                 ; Initialize stack pointer to $01FF
           TXS
           CLD                          ; Clear decimal mode
-        lda #$ff
-        sta $6002               ; Set All Control pins to outputs
-        clc
-        lda #$01
-Left_Loop:
-        sta $6000              ; Start with 1 and a cleared carry bit
-        rol
-        bcc Left_Loop
+;        lda #$E0
+;        sta $6003                ; Set 3 high pins to outputs
+;        sta $6001
 
 ; ---------------------------------------------------------------------------
 ; Set cc65 argument stack pointer
@@ -44,22 +39,15 @@ Left_Loop:
 
 ; ---------------------------------------------------------------------------
 ; Initialize memory storage
-
-        clc
-        lda #$01
-Left_Loop1:
-        sta $6000              ; Start with 1 and a cleared carry bit
-        rol
-        bcc Left_Loop1
-;          JSR     zerobss              ; Clear BSS segment
-;          JSR     copydata             ; Initialize DATA segment
-;          JSR     initlib              ; Run constructors
-        clc
-        lda #$01
-Left_Loop2:
-        sta $6000              ; Start with 1 and a cleared carry bit
-        rol
-        bcc Left_Loop2
+          JSR     zerobss              ; Clear BSS segment
+;        lda #$0
+;        sta $6001
+          JSR     copydata             ; Initialize DATA segment
+;        lda #$E0
+;        sta $6001
+          JSR     initlib              ; Run constructors
+;        lda #$0
+;        sta $6001
 
 ; ---------------------------------------------------------------------------
 ; Call main()
@@ -69,5 +57,7 @@ Left_Loop2:
 ; ---------------------------------------------------------------------------
 ; Back from main (this is also the _exit entry):  force a software break
 
-_exit:    JSR     donelib              ; Run destructors
+_exit:   jmp _exit
+
+;JSR     donelib              ; Run destructors
           BRK
