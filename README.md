@@ -4,6 +4,9 @@ Collection of notes, software and upgrades for Ben Eater's 6502 Computer
 ## Description
 I've been having a ton of fun with this project. Probably to the point my coworkers are sick of hearing about it. I had a lot of the parts list for the computer laying around, so I just ordered Ben's Clock kit. While I waiting for that I used my arduino mega to generate the clock as well as look at the signals. Which was fun because I could clock up to 8Mhz.
 
+## Arduino
+### clock generation
+
 ## Hardware
 ### 65C816 CPU
 I'm using the W65C816 instead of the W65C02, which is an almost identical CPU, but can be put into a 16-bit mode if I want to try to extend this project later. It required a slight adjustment to how the control pins are tied, but as of the second video it is still working well. If any one is interested:
@@ -53,7 +56,20 @@ Looking good I threw together this little snippet of code that uses the rotate a
 ### Protoboard backplane
 ### PS/2 Keyboard support
 ### Use 16-bit mode
+### Serial loader
+### BASIC ROM
+### FORTH ROM
+### Assembly monitor/debugger
+
 ## Links
+https://eater.net/6502
+
+https://www.cc65.org/
+
+https://www.cc65.org/doc/customizing.html
+
+
+
 
 
 
