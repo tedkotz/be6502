@@ -14,8 +14,8 @@
 ; rewritten to support other IO arrangements as well.
 ; ________________________________________________________________________________
 ;|                                                                                |
-;|        6502 <-> PC Keyboard Interface Schematic  by Daryl Rictor (c) 2001      |
-;|                                                     65c02@altavista.com        |
+;|        6502 <-> AT PC Keyboard Interface Schematic  by Daryl Rictor (c) 2001   |
+;|                                                        65c02@altavista.com     |
 ;|                                                                                |
 ;|                                                           __________           |
 ;|                      ____________________________________|          |          |
@@ -44,6 +44,38 @@
 ;|                                                                                |
 ;|________________________________________________________________________________|
 ;
+; ________________________________________________________________________________
+;|                                                                                |
+;|        6502 <-> PS/2 PC Keyboard Interface Schematic                           |
+;|                                                                                |
+;|                                                                                |
+;|                                                           __________           |
+;|                   _______________________________________|          |          |
+;|                  /           Keyboard Data            15 |PB5       |          |
+;|                  |                                       |          |          |
+;|                 _|_______                                |          |          |
+;|                / |       \                               |   6522   |          |
+;|              _|  o     o  |_                             |   VIA    |          |
+;|             /     1   2     \   +5vdc (300mA)            |          |          |
+;|            |                 |                           |          |          |
+;|        /-----o3     _     4o------------------o---->     |          |          |
+;|        |   |       | |       |          *C1 __|__        |          |          |
+;|        |    \  o   |_|   o  /               _____        |          |          |
+;|        |     \ |5   _   6  /                __|__        |          |          |
+;|        |      \|___| |____/                  ___         |          |          |
+;|        |       |                              -          |          |          |
+;|        |       |                 *C1 0.1uF Bypass Cap    |          |          |
+;|        |       |                                         |          |          |
+;|        |       \_________________________________________|          |          |
+;|        |                    Keyboard Clock            14 | PB4      |          |
+;|      __|__                                               |__________|          |
+;|       ___                                                                      |
+;|        -                                                                       |
+;|            Keyboard Socket (not the keyboard cable)                            |
+;|       (As viewed facing the holes)                                             |
+;|                                                                                |
+;|________________________________________________________________________________|
+;
 ; Software communicates to/from the keyboard and converts the received scan-codes
 ; into usable ASCII code.  ASCII codes 01-7F are decoded as well as extra
 ; pseudo-codes in order to acess all the extra keys including cursor, num pad, function,
@@ -61,6 +93,11 @@
 ;           jump to either routine if your application needs it.
 ; KBINIT  - Initialize the keyboard and associated variables and set the LEDs
 ;
+    .export _KBINPUT
+    .export _KBGET
+    .export _KBSCAN
+    .export _KBINIT
+
 ;****************************************************************************
 ;
 ; All standard keys and control keys are decoded to 7 bit (bit 7=0) standard ASCII.
@@ -134,10 +171,10 @@
 ;
 ; I/O Port definitions
 
-kbportreg      =     $7f01             ; 6522 IO port register B
-kbportddr      =     $7f03             ; 6522 IO data direction register B
-clk            =     $10               ; 6522 IO port clock bit mask (PB4)
-data           =     $20               ; 6522 IO port data bit mask  (PB5)
+kbportreg      =     $6001             ; 6522 IO port register A
+kbportddr      =     $6003             ; 6522 IO data direction register A
+clk            =     $01               ; 6522 IO port clock bit mask (PA0)
+data           =     $02               ; 6522 IO port data bit mask  (PA1)
 
 ; NOTE: some locations use the inverse of the bit masks to change the state of
 ; bit.  You will have to find them and change them in the code acordingly.
@@ -147,10 +184,17 @@ data           =     $20               ; 6522 IO port data bit mask  (PB5)
 ;
 ; temportary storage locations (zero page can be used but not necessary)
 
-byte           =     $02D0             ; byte send/received
-parity         =     $02D1             ; parity holder for rx
-special        =     $02d2             ; ctrl, shift, caps and kb LED holder
-lastbyte       =     $02d3             ; last byte received
+
+.segment	"DATA"
+
+byte:                                  ; byte send/received
+               .byte $00
+parity:                                ; parity holder for rx
+               .byte $00
+special:                               ; ctrl, shift, caps and kb LED holder
+               .byte $00
+lastbyte:                              ; last byte received
+               .byte $00
 
 ; bit definitions for the special variable
 ; (1 is active, 0 inactive)
@@ -209,14 +253,17 @@ lastbyte       =     $02d3             ; last byte received
 ; (waits for a non-zero ascii code)
 ;
 
-               *=    $7000             ; place decoder @ $7000
+;               *=    $7000             ; place decoder @ $7000
 
-kbreinit       jsr   kbinit            ;
-KBINPUT        jsr   kbtscrl           ; turn off scroll lock (ready to input)
-               bne   kbinput           ; ensure its off
-kbinput1       jsr   kbget             ; get a code (wait for a key to be pressed)
+.segment	"CODE"
+
+
+kbreinit:      jsr   _KBINIT           ;
+_KBINPUT:      jsr   kbtscrl           ; turn off scroll lock (ready to input)
+               bne   _KBINPUT          ; ensure its off
+kbinput1:      jsr   _KBGET            ; get a code (wait for a key to be pressed)
                jsr   kbcsrch           ; scan for 14 special case codes
-kbcnvt         beq   kbinput1          ; 0=complete, get next scancode
+kbcnvt:        beq   kbinput1          ; 0=complete, get next scancode
                tax                     ; set up scancode as table pointer
                cmp   #$78              ; see if its the F11
                beq   kbcnvt1           ; it is, skip keypad test
@@ -231,13 +278,13 @@ kbcnvt         beq   kbinput1          ; 0=complete, get next scancode
                and   #$7F              ;
                tax                     ;
                bra   kbcnvt3           ; skip shift test
-kbcnvt1        lda   special           ;
+kbcnvt1:       lda   special           ;
                bit   #$10              ; shift enabled?
                beq   kbcnvt3           ; no
-kbcnvt2        txa                     ; yes
+kbcnvt2:       txa                     ; yes
                ora   #$80              ; set shifted table
                tax                     ;
-kbcnvt3        lda   special           ;
+kbcnvt3:       lda   special           ;
                bit   #$08              ; control?
                beq   kbcnvt4           ; no
                lda   asciitbl,x        ; get ascii code
@@ -247,7 +294,7 @@ kbcnvt3        lda   special           ;
                beq   kbinput1          ; ensure mask didn't leave 0
                tax                     ;
                bra   kbdone            ;
-kbcnvt4        lda   asciitbl,x        ; get ascii code
+kbcnvt4:       lda   asciitbl,x        ; get ascii code
                beq   kbinput1          ; if ascii code is 0, invalid scancode, get another
                tax                     ; save ascii code in x reg
                lda   special           ;
@@ -261,8 +308,8 @@ kbcnvt4        lda   asciitbl,x        ; get ascii code
                sec                     ; alpha chr found, make it uppercase
                sbc   #$20              ; if caps on and lowercase, change to upper
                tax                     ; put new ascii to x reg
-kbdone         phx                     ; save ascii to stack
-kbdone1        jsr   kbtscrl           ; turn on scroll lock (not ready to receive)
+kbdone:        phx                     ; save ascii to stack
+kbdone1:       jsr   kbtscrl           ; turn on scroll lock (not ready to receive)
                beq   kbdone1           ; ensure scroll lock is on
                pla                     ; get ASCII code
                rts                     ; return to calling program
@@ -272,84 +319,84 @@ kbdone1        jsr   kbtscrl           ; turn on scroll lock (not ready to recei
 ; scan code processing routines
 ;
 ;
-kbtrap83       lda   #$02              ; traps the F7 code of $83 and chang
+kbtrap83:      lda   #$02              ; traps the F7 code of $83 and chang
                rts                     ;
 ;
-kbsshift       lda   #$10              ; *** neat trick to tuck code inside harmless cmd
+kbsshift:      lda   #$10              ; *** neat trick to tuck code inside harmless cmd
                .byte $2c               ; *** use BIT Absolute to skip lda #$02 below
-kbsctrl        lda   #$08              ; *** disassembles as  LDA #$01
+kbsctrl:       lda   #$08              ; *** disassembles as  LDA #$01
                ora   special           ;                      BIT $A902
                sta   special           ;                      ORA $02D3
                bra   kbnull            ; return with 0 in A
 ;
-kbtnum         lda   special           ; toggle numlock bit in special
+kbtnum:        lda   special           ; toggle numlock bit in special
                eor   #$02              ;
                sta   special           ;
                jsr   kbsled            ; update keyboard leds
                bra   kbnull            ; return with 0 in A
 ;
-kbresend       lda   lastbyte          ;
+kbresend:      lda   lastbyte          ;
                jsr   kbsend            ;
                bra   kbnull            ; return with 0 in A
 ;
-kbtcaps        lda   special           ; toggle caps bit in special
+kbtcaps:       lda   special           ; toggle caps bit in special
                eor   #$04              ;
                sta   special           ;
                jsr   kbsled            ; set new status leds
-kbnull         lda   #$00              ; set caps, get next code
+kbnull:        lda   #$00              ; set caps, get next code
                rts                     ;
 ;
-kbExt          jsr   kbget             ; get next code
+kbExt:         jsr   _KBGET            ; get next code
                cmp   #$F0              ; is it an extended key release?
                beq   kbexrls           ; test for shift, ctrl, caps
                cmp   #$14              ; right control?
                beq   kbsctrl           ; set control and get next scancode
                ldx   #$03              ; test for 4 scancode to be relocated
-kbext1         cmp   kbextlst,x        ; scan list
+kbext1:        cmp   kbextlst,x        ; scan list
                beq   kbext3            ; get data if match found
                dex                     ; get next item
                bpl   kbext1            ;
                cmp   #$3F              ; not in list, test range 00-3f or 40-7f
                bmi   kbExt2            ; its a windows/alt key, just return unshifted
                ora   #$80              ; return scancode and point to shifted table
-kbExt2         rts                     ;
-kbext3         lda   kbextdat,x        ; get new scancode
+kbExt2:        rts                     ;
+kbext3:        lda   kbextdat,x        ; get new scancode
                rts                     ;
 ;
-kbextlst       .byte $7E               ; E07E ctrl-break scancode
+kbextlst:      .byte $7E               ; E07E ctrl-break scancode
                .byte $4A               ; E04A kp/
                .byte $12               ; E012 scancode
                .byte $7C               ; E07C prt scrn
 ;
-kbextdat       .byte $20               ; new ctrl-brk scancode
+kbextdat:      .byte $20               ; new ctrl-brk scancode
                .byte $6A               ; new kp/ scancode
                .byte $00               ; do nothing (return and get next scancode)
                .byte $0F               ; new prt scrn scancode
 ;
-kbexrls        jsr   kbget             ;
+kbexrls:       jsr   _KBGET            ;
                cmp   #$12              ; is it a release of the E012 code?
                bne   kbrlse1           ; no - process normal release
                bra   kbnull            ; return with 0 in A
 ;
-kbrlse         jsr   kbget             ; test for shift & ctrl
+kbrlse:        jsr   _KBGET            ; test for shift & ctrl
                cmp   #$12              ;
                beq   kbrshift          ; reset shift bit
                cmp   #$59              ;
                beq   kbrshift          ;
-kbrlse1        cmp   #$14              ;
+kbrlse1:       cmp   #$14              ;
                beq   kbrctrl           ;
                cmp   #$11              ; alt key release
                bne   kbnull            ; return with 0 in A
-kbralt         lda   #$13              ; new alt release scancode
+kbralt:        lda   #$13              ; new alt release scancode
                rts                     ;
-kbrctrl        lda   #$F7              ; reset ctrl bit in special
+kbrctrl:       lda   #$F7              ; reset ctrl bit in special
                .byte $2c               ; use (BIT Absolute) to skip lda #$EF if passing down
-kbrshift       lda   #$EF              ; reset shift bit in special
+kbrshift:      lda   #$EF              ; reset shift bit in special
                and   special           ;
                sta   special           ;
                bra   kbnull            ; return with 0 in A
 ;
-kbtscrl        lda   special           ; toggle scroll lock bit in special
+kbtscrl:       lda   special           ; toggle scroll lock bit in special
                eor   #$01              ;
                sta   special           ;
                jsr   kbsled            ; update keyboard leds
@@ -357,20 +404,20 @@ kbtscrl        lda   special           ; toggle scroll lock bit in special
                bit   #$01              ; check scroll lock status bit
                rts                     ; return
 ;
-kbBrk          ldx   #$07              ; ignore next 7 scancodes then
-kbBrk1         jsr   kbget             ; get scancode
+kbBrk:         ldx   #$07              ; ignore next 7 scancodes then
+kbBrk1:        jsr   _KBGET            ; get scancode
                dex                     ;
                bne   kbBrk1            ;
                lda   #$10              ; new scan code
                rts                     ;
 ;
-kbcsrch        ldx   #$0E              ; 14 codes to check
-kbcsrch1       cmp   kbclst,x          ; search scancode table for special processing
+kbcsrch:       ldx   #$0E              ; 14 codes to check
+kbcsrch1:      cmp   kbclst,x          ; search scancode table for special processing
                beq   kbcsrch2          ; if found run the routine
                dex                     ;
                bpl   kbcsrch1          ;
                rts                     ; no match, return from here for further processing
-kbcsrch2       txa                     ; code found - get index
+kbcsrch2:      txa                     ; code found - get index
                asl                     ; mult by two
                tax                     ; save back to x
                lda   byte              ; load scancode back into A
@@ -380,7 +427,7 @@ kbcsrch2       txa                     ; code found - get index
 ;keyboard command/scancode test list
 ; db=define byte, stores one byte of data
 ;
-kbclst         .byte $83               ; F7 - move to scancode 02
+kbclst:        .byte $83               ; F7 - move to scancode 02
                .byte $58               ; caps
                .byte $12               ; Lshift
                .byte $59               ; Rshift
@@ -398,7 +445,7 @@ kbclst         .byte $83               ; F7 - move to scancode 02
 ;
 ; command/scancode jump table
 ;
-kbccmd         .word kbtrap83          ;
+kbccmd:        .word kbtrap83          ;
                .word kbtcaps           ;
                .word kbsshift          ;
                .word kbsshift          ;
@@ -406,7 +453,7 @@ kbccmd         .word kbtrap83          ;
                .word kbtnum            ;
                .word kbBrk             ;
                .word kbExt             ;
-               .word kbRlse            ;
+               .word kbrlse            ;
                .word kbnull            ;
                .word kbnull            ;
                .word kbnull            ;
@@ -426,11 +473,11 @@ kbccmd         .word kbtrap83          ;
 ; is ready is ambiguous.  You must call KBGET or KBINPUT to
 ; get the keyboard data.
 ;
-KBSCAN         ldx   #$05              ; timer: x = (cycles - 40)/13   (105-40)/13=5
+_KBSCAN:       ldx   #$05              ; timer: x = (cycles - 40)/13   (105-40)/13=5
                lda   kbportddr         ;
-               and   #$CF              ; set clk to input (change if port bits change)
+               and   #$FC              ; set clk to input (change if port bits change)
                sta   kbportddr         ;
-kbscan1        lda   #clk              ;
+kbscan1:       lda   #clk              ;
                bit   kbportreg         ;
                beq   kbscan2           ; if clk goes low, data ready
                dex                     ; reduce timer
@@ -438,51 +485,51 @@ kbscan1        lda   #clk              ;
                jsr   kbdis             ; timed out, no data, disable receiver
                lda   #$00              ; set data not ready flag
                rts                     ; return
-kbscan2        jsr   kbdis             ; disable the receiver so other routines get it
+kbscan2:       jsr   kbdis             ; disable the receiver so other routines get it
 ; Three alternative exits if data is ready to be received: Either return or jmp to handler
                rts                     ; return (A<>0, A=clk bit mask value from kbdis)
-;               jmp   KBINPUT           ; if key pressed, decode it with KBINPUT
-;               jmp   KBGET             ; if key pressed, decode it with KBGET
+;               jmp   _KBINPUT         ; if key pressed, decode it with KBINPUT
+;               jmp   _KBGET           ; if key pressed, decode it with KBGET
 ;
 ;
-kbflush        lda   #$f4              ; flush buffer
+kbflush:       lda   #$f4              ; flush buffer
 ;
 ; send a byte to the keyboard
 ;
-kbsend         sta   byte              ; save byte to send
+kbsend:        sta   byte              ; save byte to send
                phx                     ; save registers
                phy                     ;
                sta   lastbyte          ; keep just in case the send fails
                lda   kbportreg         ;
-               and   #$EF              ; clk low, data high (change if port bits change)
+               and   #$FE              ; clk low, data high (change if port bits change)
                ora   #data             ;
                sta   kbportreg         ;
                lda   kbportddr         ;
-               ora   #$30              ;  bit bits high (change if port bits change)
+               ora   #$03              ;  bit bits high (change if port bits change)
                sta   kbportddr         ; set outputs, clk=0, data=1
                lda   #$10              ; 1Mhz cpu clock delay (delay = cpuclk/62500)
-kbsendw        dec                     ;
+kbsendw:       dec                     ;
                bne   kbsendw           ; 64uS delay
                ldy   #$00              ; parity counter
                ldx   #$08              ; bit counter
                lda   kbportreg         ;
-               and   #$CF              ; clk low, data low (change if port bits change)
+               and   #$FC              ; clk low, data low (change if port bits change)
                sta   kbportreg         ;
                lda   kbportddr         ;
-               and   #$EF              ; set clk as input (change if port bits change)
+               and   #$FE              ; set clk as input (change if port bits change)
                sta   kbportddr         ; set outputs
                jsr   kbhighlow         ;
-kbsend1        ror   byte              ; get lsb first
+kbsend1:       ror   byte              ; get lsb first
                bcs   kbmark            ;
                lda   kbportreg         ;
-               and   #$DF              ; turn off data bit (change if port bits change)
+               and   #$FD              ; turn off data bit (change if port bits change)
                sta   kbportreg         ;
                bra   kbnext            ;
-kbmark         lda   kbportreg         ;
+kbmark:        lda   kbportreg         ;
                ora   #data             ;
                sta   kbportreg         ;
                iny                     ; inc parity counter
-kbnext         jsr   kbhighlow         ;
+kbnext:        jsr   kbhighlow         ;
                dex                     ;
                bne   kbsend1           ; send 8 data bits
                tya                     ; get parity count
@@ -492,27 +539,27 @@ kbnext         jsr   kbhighlow         ;
                ora   #data             ; if even, send 1
                sta   kbportreg         ;
                bra   kback             ;
-kbpclr         lda   kbportreg         ;
-               and   #$DF              ; send data=0 (change if port bits change)
+kbpclr:        lda   kbportreg         ;
+               and   #$FD              ; send data=0 (change if port bits change)
                sta   kbportreg         ;
-kback          jsr   kbhighlow         ;
+kback:         jsr   kbhighlow         ;
                lda   kbportddr         ;
-               and   #$CF              ; set clk & data to input (change if port bits change)
+               and   #$FC              ; set clk & data to input (change if port bits change)
                sta   kbportddr         ;
                ply                     ; restore saved registers
                plx                     ;
                jsr   kbhighlow         ; wait for ack from keyboard
-               bne   kbinit            ; VERY RUDE error handler - re-init the keyboard
-kbsend2        lda   kbportreg         ;
+               bne   _KBINIT           ; VERY RUDE error handler - re-init the keyboard
+kbsend2:       lda   kbportreg         ;
                and   #clk              ;
                beq   kbsend2           ; wait while clk low
                bra   kbdis             ; diable kb sending
 ;
 ; KBGET waits for one scancode from the keyboard
 ;
-kberror        lda   #$FE              ; resend cmd
+kberror:       lda   #$FE              ; resend cmd
                jsr   kbsend            ;
-KBGET          phx                     ;
+_KBGET:        phx                     ;
                phy                     ;
                lda   #$00              ;
                sta   byte              ; clear scankey holder
@@ -520,27 +567,27 @@ KBGET          phx                     ;
                ldy   #$00              ; clear parity counter
                ldx   #$08              ; bit counter
                lda   kbportddr         ;
-               and   #$CF              ; set clk to input (change if port bits change)
+               and   #$FC              ; set clk to input (change if port bits change)
                sta   kbportddr         ;
-kbget1         lda   #clk              ;
+kbget1:        lda   #clk              ;
                bit   kbportreg         ;
                bne   kbget1            ; wait while clk is high
                lda   kbportreg         ;
                and   #data             ; get start bit
                bne   kbget1            ; if 1, false start bit, do again
-kbget2         jsr   kbhighlow         ; wait for clk to return high then go low again
+kbget2:        jsr   kbhighlow         ; wait for clk to return high then go low again
                cmp   #$01              ; set c if data bit=1, clr if data bit=0
                                        ; (change if port bits change) ok unless data=01 or 80
                                        ; in that case, use ASL or LSR to set carry bit
                ror   byte              ; save bit to byte holder
                bpl   kbget3            ;
                iny                     ; add 1 to parity counter
-kbget3         dex                     ; dec bit counter
+kbget3:        dex                     ; dec bit counter
                bne   kbget2            ; get next bit if bit count > 0
                jsr   kbhighlow         ; wait for parity bit
                beq   kbget4            ; if parity bit 0 do nothing
                inc   parity            ; if 1, set parity to 1
-kbget4         tya                     ; get parity count
+kbget4:        tya                     ; get parity count
                ply                     ;
                plx                     ;
                eor   parity            ; compare with parity bit
@@ -549,34 +596,34 @@ kbget4         tya                     ; get parity count
                jsr   kbhighlow         ; wait for stop bit
                beq   kberror           ; 0=bad stop bit
                lda   byte              ; if byte & parity 0,
-               beq   kbget             ; no data, do again
+               beq   _KBGET            ; no data, do again
                jsr   kbdis             ;
                lda   byte              ;
                rts                     ;
 ;
-kbdis          lda   kbportreg         ; disable kb from sending more data
-               and   #$EF              ; clk = 0 (change if port bits change)
+kbdis:         lda   kbportreg         ; disable kb from sending more data
+               and   #$FE              ; clk = 0 (change if port bits change)
                sta   kbportreg         ;
                lda   kbportddr         ; set clk to ouput low
-               and   #$CF              ; (stop more data until ready) (change if port bits change)
+               and   #$FC              ; (stop more data until ready) (change if port bits change)
                ora   #clk              ;
                sta   kbportddr         ;
                rts                     ;
 ;
-KBINIT         lda   #$02              ; init - num lock on, all other off
+_KBINIT:       lda   #$02              ; init - num lock on, all other off
                sta   special           ;
-kbinit1        lda   #$ff              ; keybrd reset
+kbinit1:       lda   #$ff              ; keybrd reset
                jsr   kbsend            ; reset keyboard
-               jsr   kbget             ;
+               jsr   _KBGET            ;
                cmp   #$FA              ; ack?
                bne   kbinit1           ; resend reset cmd
-               jsr   kbget             ;
+               jsr   _KBGET            ;
                cmp   #$AA              ; reset ok
                bne   kbinit1           ; resend reset cmd
                                        ; fall into to set the leds
-kbsled         lda   #$ED              ; Set the keybrd LED's from kbleds variable
+kbsled:        lda   #$ED              ; Set the keybrd LED's from kbleds variable
                jsr   kbsend            ;
-               jsr   kbget             ;
+               jsr   _KBGET            ;
                cmp   #$FA              ; ack?
                bne   kbsled            ; resend led cmd
                lda   special           ;
@@ -584,10 +631,10 @@ kbsled         lda   #$ED              ; Set the keybrd LED's from kbleds variab
                jsr   kbsend            ;
                rts                     ;
                                        ;
-kbhighlow      lda   #clk              ; wait for a low to high to low transition
+kbhighlow:     lda   #clk              ; wait for a low to high to low transition
                bit   kbportreg         ;
                beq   kbhighlow         ; wait while clk low
-kbhl1          bit   kbportreg         ;
+kbhl1:         bit   kbportreg         ;
                bne   kbhl1             ; wait while clk is high
                lda   kbportreg         ;
                and   #data             ; get data line state
@@ -598,7 +645,7 @@ kbhl1          bit   kbportreg         ;
 ;                                      Scan|Keyboard
 ;                                      Code|Key
 ;                                      ----|----------
-ASCIITBL       .byte $00               ; 00 no key pressed
+asciitbl:      .byte $00               ; 00 no key pressed
                .byte $89               ; 01 F9
                .byte $87               ; 02 relocated F7
                .byte $85               ; 03 F5
