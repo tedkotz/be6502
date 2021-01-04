@@ -4,8 +4,8 @@
 ;
 ; Startup code for cc65 (Single Board Computer version)
 
-.export   _init, _exit
-.import   _main
+.export   _init, _exit, _disable_ints, _enable_ints
+.import   _main, _KBINIT
 
 .export   __STARTUP__ : absolute = 1        ; Mark as startup
 .import   __RAM_START__, __RAM_SIZE__       ; Linker generated
@@ -18,6 +18,16 @@
 ; Place the startup code in a special segment
 
 .segment  "STARTUP"
+
+
+_disable_ints:
+          SEI                    ;
+          RTS                    ;
+
+_enable_ints:
+          CLI                    ;
+          RTS                    ;
+
 
 ; ---------------------------------------------------------------------------
 ; A little light 6502 housekeeping
@@ -40,15 +50,11 @@ _init:    LDX     #$FF                 ; Initialize stack pointer to $01FF
 ; ---------------------------------------------------------------------------
 ; Initialize memory storage
           JSR     zerobss              ; Clear BSS segment
-;        lda #$0
-;        sta $6001
           JSR     copydata             ; Initialize DATA segment
-;        lda #$E0
-;        sta $6001
           JSR     initlib              ; Run constructors
-;        lda #$0
-;        sta $6001
 
+          JSR     _KBINIT
+          JSR     _enable_ints
 ; ---------------------------------------------------------------------------
 ; Call main()
 
@@ -57,7 +63,8 @@ _init:    LDX     #$FF                 ; Initialize stack pointer to $01FF
 ; ---------------------------------------------------------------------------
 ; Back from main (this is also the _exit entry):  force a software break
 
-_exit:   jmp _exit
-
-;JSR     donelib              ; Run destructors
+_exit:
+;          jmp _exit
+          JSR     donelib              ; Run destructors
+;          stp
           BRK
