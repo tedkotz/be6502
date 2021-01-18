@@ -116,13 +116,14 @@ I used this instead of the script Ben used, but it is functionally identical.
 
 ### CA65 and linker file
 ### C runtime for CC65
+### PS/2 Keyboard support
+
 ## To Do
 ### 65C51 serial interface
 ### SAA 1099P Sound Chips
 ### ENC28J60 8k RAM Ethernet MAC&PHY
 ### I2C
 ### Protoboard backplane
-### PS/2 Keyboard support
 ### Use 16-bit mode
 ### Serial loader
 ### BASIC ROM
