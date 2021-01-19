@@ -93,10 +93,57 @@ keep the Main RAM section contiguous then we would have to move the VIO and that
 | 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
 
 #### NAND (7400)
+The circuit as originally designed only uses 3 of the 4 NAND gates on the 7400.
+This bring to mind the question can the extra NAND gate be used to get us more
+inline with the map above?
+
+The answer is yes, with the caveat that we have to sacrifice a little robustness
+in the design. in particular we have to assume no one is going to try to write
+to the ROM. if they did it could actually mirror thru  to the lower addresses of
+RAM. For 50% more RAM this seems like a fair trade off.
+
+Fundamentally we want to change when the RAM is selected from when A14 is not
+high to when A14 and A13 are both not high. We can do this by changing the
+equations for /CS and /OE for the RAM from:
+```
+   /CS = NOT( NOT(A15) & CLK )
+   /OE = A14
+```
+to:
+```
+   /CS = NOT( NOT(A14&A13) & CLK )
+   /OE = A15
+```
+
+You get this by first changing the RAM /OE(pin22) from A14(RAM pin1) to
+A15(CPU pin25). The extra NAND gate is input A14(already connected to another
+NAND gate) and A13(CPU pin23). Finally, where the output from the not of A15 is
+fed into the adjacent NAND gate to combine with the clock instead feed in the
+output of the new NAND gate.
+
+Weirdly, having NOT(A14&A13) can free up one of the NAND gates used by the VIA.
+Changing its CS inputs from:
+```
+   /CS = NOT( NOT(A15) & A14 )
+    CS = A13
+```
+to
+```
+   /CS = NOT(A14&A13)
+    CS = NOT(A15)
+```
+
+So now the question is can we use this reclaimed NAND gate to either get us back
+protection on writes to ROM changing RAM or reducing the address space allocated
+to the VIA? Maybe we can combine A12 into the VIA chip selects or get A15 back
+into the calculation for the RAM chip select?
+
+
 #### 3 to 8 Line decoder (74138)
 #### GAL16V8
 ## Software
 Looking good I threw together this little snippet of code that uses the rotate and conditional instructions to create a bouncing light effect
+```
     0xa9, 0xff, // lda 0xff
     0x8d, 0x02, 0x60, // sta 0x6002
     0x18, // clc
@@ -110,22 +157,35 @@ Looking good I threw together this little snippet of code that uses the rotate a
     0x6a, // ror
     0x90, -6, // bcc -6
     0x4c, 0x05, 0x80, // jmp 0x8005
+```
+
 ### Simple Machine Code Generator
 I threw together a simple C program to facilitate building the binary files with specified machine code.
 I used this instead of the script Ben used, but it is functionally identical.
 
 ### CA65 and linker file
 ### C runtime for CC65
-### PS/2 Keyboard support
+### PS/2 Keyboard support (Bit Banging)
+This started with the code from:
+```
+    http://sbc.rictor.org/io/pckb6522.html
+```
+I had to massage it to get it to work with CA65, the pins I was using PA0-1 and
+interoperate with the C runtime environment I'm using.
+
 
 ## To Do
+### Create a makefile for the C build
 ### 65C51 serial interface
 ### SAA 1099P Sound Chips
 ### ENC28J60 8k RAM Ethernet MAC&PHY
 ### I2C
 ### Protoboard backplane
+### PS/2 Keyboard support (65C22 shift registers)
+### NES Gamepad
 ### Use 16-bit mode
 ### Serial loader
+### Simple debugger
 ### BASIC ROM
 ### FORTH ROM
 ### Assembly monitor/debugger
