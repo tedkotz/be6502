@@ -111,7 +111,7 @@ equations for /CS and /OE for the RAM from:
 ```
 to:
 ```
-   /CS = NOT( NOT(A14&A13) & CLK )
+   /CS = NOT( NOT(A14 & A13) & CLK )
    /OE = A15
 ```
 
@@ -129,15 +129,47 @@ Changing its CS inputs from:
 ```
 to
 ```
-   /CS = NOT(A14&A13)
+   /CS = NOT(A14 & A13)
     CS = NOT(A15)
 ```
 
 So now the question is can we use this reclaimed NAND gate to either get us back
-protection on writes to ROM changing RAM or reducing the address space allocated
-to the VIA? Maybe we can combine A12 into the VIA chip selects or get A15 back
-into the calculation for the RAM chip select?
+protection on writes to ROM changing RAM? Maybe we  get A15 back into the
+calculation for the RAM chip select.
 
+```
+   /CS = NOT( NOT(A14 & A13) & CLK )
+   /OE = A15
+```
+to:
+```
+   /CS = NOT( NOT(A15) & CLK )
+   /OE = NOT( NOT(A14 & A13) )
+```
+
+**TL;DR** So in the end you can use all 4 NAND gates to increase the RAM by 50%
+without any loss of functionality by changing the bus selection logic from:
+```
+ROM:
+   /CS = NOT(A15)
+RAM:
+   /CS = NOT( NOT(A15) & CLK )
+   /OE = A14
+VIA:
+   /CS = NOT( NOT(A15) & A14 )
+    CS = A13
+```
+to:
+```
+ROM:
+   /CS = NOT(A15)
+RAM:
+   /CS = NOT( NOT(A15) & CLK )
+   /OE = NOT( NOT(A14 & A13) )
+VIA:
+   /CS = NOT(A14 & A13)
+    CS = NOT(A15)
+```
 
 #### 3 to 8 Line decoder (74138)
 #### GAL16V8
