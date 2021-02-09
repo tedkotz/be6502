@@ -25,14 +25,17 @@ I'm using the W65C816 instead of the W65C02, which is an almost identical CPU, b
 |39  |VDA    |FLOAT      |
 
 ### ZIF socket ROM
-This is incredibly straight forward, but has been a very nice addition. I had a ZIF socket that would fit the ROM chip so I put the ZIF socket on some standoffs to give it a little more room on the board. This lets swapping the program a little easier.
+This is incredibly straight forward, but has been a very nice addition. I had a ZIF socket 
+that would fit the ROM chip so I put the ZIF socket on some standoffs to give it a little 
+more room on the board. This makes swapping the program a little easier.
 
 ### 4 Row Display
 I didn't have a 2 row LCD display, but I did have a 4 row version. The 4 row
 is actually wired up in the exact same way as the 2 row version. The strange
 thing about the 4 row versions is that if you just overrun the end of the line
-they overflow in a not immediately intuitive order row 1, 3, 2, then 4. For
-compatibility purposes this should be no problem as it will just have blank lines.
+it overflows in a not immediately intuitive order row 1, 3, 2, then 4. This should 
+not provide a software compatibility problem as the display will just have 
+blank lines if software only uses 2 rows.
 
 My eventual goal is to get the C runtime for this to properly format newlines by advancing
 to the next line from the user point of view and having the text scroll off the top as one
@@ -42,10 +45,11 @@ committed version will probably default to 2 ROw to be compatible with the be650
 originally spec'd.
 
 ### 3.7152 MHz Clock
-The only oscillator I had on hand was a 3.7152 Mhz oscillator. It wired up exactly the same as the 1Mhz clock and ran without issue.
+The only oscillator on hand that was close to 1MHz was a 3.7152 Mhz oscillator. It wired up 
+exactly the same as the 1Mhz clock and ran without issue.
 
 ### Address Decoding logic
-Ben said that the address layout was some what wasteful of address space, but the engineering tradeoff was for mor efficiency in complexity of the decoder. In fact, all his decoding logic only uses 3 nand gates, a pretty impressive feat.
+Ben said that the address layout was some what wasteful of address space. The engineering tradeoff goal was to reduce the complexity of the decoder. In fact, all his decoding logic only uses 3 nand gates, a pretty impressive feat.
 
 ##### Original Ben Eater Memory Layout
 
@@ -94,8 +98,8 @@ keep the Main RAM section contiguous then we would have to move the VIO and that
 
 #### NAND (7400)
 The circuit as originally designed only uses 3 of the 4 NAND gates on the 7400.
-This bring to mind the question can the extra NAND gate be used to get us more
-inline with the map above?
+This brings to mind the question can the extra NAND gate be used to get us closer 
+to the target memory map above?
 
 The answer is yes, with the caveat that we have to sacrifice a little robustness
 in the design. in particular we have to assume no one is going to try to write
@@ -174,37 +178,43 @@ VIA:
 #### 3 to 8 Line decoder (74138)
 #### GAL16V8
 ## Software
-Looking good I threw together this little snippet of code that uses the rotate and conditional instructions to create a bouncing light effect
+With the bank of LEDs on the outputs of the VIO, This little snippet of code uses the rotate and conditional instructions to create a bouncing light effect
 ```
-    0xa9, 0xff, // lda 0xff
+    0xa9, 0xff,       // lda 0xff
     0x8d, 0x02, 0x60, // sta 0x6002
-    0x18, // clc
-    0xa9, 0x01, // lda 0x01
+    0x18,             // clc
+    0xa9, 0x01,       // lda 0x01
     0x8d, 0x00, 0x60, // sta 0x6000
-    0x2a, // rol
-    0x90, -6, // bcc -6
-    0x18, // clc
-    0xa9, 0x80, // lda 0x80
+    0x2a,             // rol
+    0x90, -6,         // bcc -6
+    0x18,             // clc
+    0xa9, 0x80,       // lda 0x80
     0x8d, 0x00, 0x60, // sta 0x6000
-    0x6a, // ror
-    0x90, -6, // bcc -6
+    0x6a,             // ror
+    0x90, -6,         // bcc -6
     0x4c, 0x05, 0x80, // jmp 0x8005
 ```
 
 ### Simple Machine Code Generator
 I threw together a simple C program to facilitate building the binary files with specified machine code.
-I used this instead of the script Ben used, but it is functionally identical.
+I used this instead of the script Ben used, but it is functionally identical. 
+
+- [ ] Add the code.
 
 ### CA65 and linker file
 ### C runtime for CC65
 ### PS/2 Keyboard support (Bit Banging)
-This started with the code from:
-```
-    http://sbc.rictor.org/io/pckb6522.html
-```
+This started with the code from <http://sbc.rictor.org/io/pckb6522.html>.
+
 I had to massage it to get it to work with CA65, the pins I was using PA0-1 and
 interoperate with the C runtime environment I'm using.
 
+It could be used with a USB keyboard that supports ps/2 signalling (most do with this adpater).
+
+<https://www.instructables.com/USB-to-PS2-convertor/>
+
+- [ ] Add USB wiring diagram
+- [ ] Make it easier to change pin configuration
 
 ## To Do
 ### Create a makefile for the C build
