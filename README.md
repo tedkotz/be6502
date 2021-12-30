@@ -25,16 +25,16 @@ I'm using the W65C816 instead of the W65C02, which is an almost identical CPU, b
 |39  |VDA    |FLOAT      |
 
 ### ZIF socket ROM
-This is incredibly straight forward, but has been a very nice addition. I had a ZIF socket 
-that would fit the ROM chip so I put the ZIF socket on some standoffs to give it a little 
+This is incredibly straight forward, but has been a very nice addition. I had a ZIF socket
+that would fit the ROM chip so I put the ZIF socket on some standoffs to give it a little
 more room on the board. This makes swapping the program a little easier.
 
 ### 4 Row Display
 I didn't have a 2 row LCD display, but I did have a 4 row version. The 4 row
 is actually wired up in the exact same way as the 2 row version. The strange
 thing about the 4 row versions is that if you just overrun the end of the line
-it overflows in a not immediately intuitive order row 1, 3, 2, then 4. This should 
-not provide a software compatibility problem as the display will just have 
+it overflows in a not immediately intuitive order row 1, 3, 2, then 4. This should
+not provide a software compatibility problem as the display will just have
 blank lines if software only uses 2 rows.
 
 My eventual goal is to get the C runtime for this to properly format newlines by advancing
@@ -45,11 +45,11 @@ committed version will probably default to 2 ROw to be compatible with the be650
 originally spec'd.
 
 ### 3.7152 MHz Clock
-The only oscillator on hand that was close to 1MHz was a 3.7152 Mhz oscillator. It wired up 
+The only oscillator on hand that was close to 1MHz was a 3.7152 Mhz oscillator. It wired up
 exactly the same as the 1Mhz clock and ran without issue.
 
 ### Address Decoding logic
-Ben said that the address layout was some what wasteful of address space. The engineering tradeoff goal was to reduce the complexity of the decoder. In fact, all his decoding logic only uses 3 nand gates, a pretty impressive feat.
+Ben said that the address layout was some what wasteful of address space. The engineering trade-off goal was to reduce the complexity of the decoder. In fact, all his decoding logic only uses 3 nand gates, a pretty impressive feat.
 
 ##### Original Ben Eater Memory Layout
 
@@ -59,7 +59,7 @@ Ben said that the address layout was some what wasteful of address space. The en
 | 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
 | 0x0200 - 0x3FFF | Main RAM                         |
 | 0x4000 - 0x5FFF | Reserved                         |
-| 0x6000 - 0x6003 | VIO Interface                    |
+| 0x6000 - 0x6003 | VIA Interface                    |
 | 0x6004 - 0x7FFF | Reserved                         |
 | 0x8000 - 0xFFF8 | Main ROM                         |
 | 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
@@ -77,14 +77,14 @@ To that end the first step is to allocate all addresses below 0x6000 to actual R
 The next priority is splitting out enable signals that each correspond to 1k of I/O address space.
 Then maybe each of those could be used for a different one of the chips in the future expansion section below.
 Once a serial loader is available the ROM address space could probably be greatly reduced, but if we wanted to
-keep the Main RAM section contiguous then we would have to move the VIO and that would make it no longer compatible.
+keep the Main RAM section contiguous then we would have to move the VIA and that would make it no longer compatible.
 ##### Alternate Memory Layout
 | Address Range   | Description                      |
 |-----------------|----------------------------------|
 | 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
 | 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
 | 0x0200 - 0x5FFF | Main RAM                         |
-| 0x6000 - 0x6003 | VIO Interface                    |
+| 0x6000 - 0x6003 | VIA Interface                    |
 | 0x6004 - 0x63FF | Reserved                         |
 | 0x6400 - 0x67FF | Reserved for 65C51               |
 | 0x6800 - 0x6BFF | Reserved for Device 4            |
@@ -98,7 +98,7 @@ keep the Main RAM section contiguous then we would have to move the VIO and that
 
 #### NAND (7400)
 The circuit as originally designed only uses 3 of the 4 NAND gates on the 7400.
-This brings to mind the question can the extra NAND gate be used to get us closer 
+This brings to mind the question can the extra NAND gate be used to get us closer
 to the target memory map above?
 
 The answer is yes, with the caveat that we have to sacrifice a little robustness
@@ -175,10 +175,113 @@ VIA:
     CS = NOT(A15)
 ```
 
+| Address Range   | Description                      |
+|-----------------|----------------------------------|
+| 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
+| 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
+| 0x0200 - 0x5FFF | Main RAM                         |
+| 0x6000 - 0x6003 | VIA Interface                    |
+| 0x6004 - 0x7FFF | Reserved                         |
+| 0x8000 - 0xFFF8 | Main ROM                         |
+| 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
+
+
 #### 3 to 8 Line decoder (74138)
+
+I don't know if this is as useful as it seemed at first.
+Additional logic may still be needed to use the CLK line to drive the RAM and
+the limited number of inputs really causes the chip to drive the layout making it
+very difficult to build a layout compatible with the original design. But let's see
+what we can do.
+
+We could use the A15 line on the decoders positive chip select to cycle thru 9 different
+active low regions, though we still won't have the clock in the correct phase to drive the RAM CS pin.
+```
+Decoder:
+   A = A14
+   B = A13
+   C = A12
+   CS = A15
+```
+
+| Address Range   | Description                      |
+|-----------------|----------------------------------|
+| 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
+| 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
+| 0x0200 - 0x7FFF | Main RAM                         |
+| 0x8000 - 0x8FFF | Device Y0 (VIA Chip)             |
+| 0x9000 - 0x9FFF | Device Y1                        |
+| 0xA000 - 0xAFFF | Device Y2                        |
+| 0xB000 - 0xBFFF | Device Y3                        |
+| 0xC000 - 0xCFFF | Device Y4                        |
+| 0xD000 - 0xDFFF | Device Y5                        |
+| 0xE000 - 0xEFFF | Device Y6                        |
+| 0xF000 - 0xFFF8 | Main ROM (Y7)                    |
+| 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
+
+If we are keeping the NAND gate in order to clock the RAM CS correctly. Then we can
+chain the VIA off the decoder in order to get more expansion for more VIA or other
+peripherals.
+```
+ROM:
+   /CS = NOT(A15)
+RAM:
+   /CS = NOT( NOT(A15) & CLK )
+   /OE = NOT( NOT(A14 & A13) )
+Decoder:
+   A = A12
+   B = A11
+   C = A10
+   /CS = NOT(A14 & A13)
+   CS = NOT(A15)
+VIA:
+   /CS = Y0
+```
+
+| Address Range   | Description                      |
+|-----------------|----------------------------------|
+| 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
+| 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
+| 0x0200 - 0x3FFF | Main RAM                         |
+| 0x4000 - 0x5FFF | Reserved                         |
+| 0x6000 - 0x63FF | VIA Interface (Y0)               |
+| 0x6400 - 0x67FF | Y1                               |
+| 0x6800 - 0x6BFF | Y2                               |
+| 0x6C00 - 0x6FFF | Y3                               |
+| 0x7000 - 0x73FF | Y4                               |
+| 0x7400 - 0x67FF | Y5                               |
+| 0x7800 - 0x6BFF | Y6                               |
+| 0x7C00 - 0x6FFF | Y7                               |
+| 0x8000 - 0xFFF8 | Main ROM                         |
+| 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
+
+This gets the target interface, but requires us to add an extra chip.
+
+
 #### GAL16V8
+The GAL16V8 only has 8 outputs. So it can only drive 8 devices without additional
+logic. Though that can be based on fairly complex internal logic and change by just
+reprogramming the GAL.
+
+| Address Range   | Description                      |
+|-----------------|----------------------------------|
+| 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
+| 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
+| 0x0200 - 0x5FFF | Main RAM                         |
+| 0x6000 - 0x6003 | VIA Interface                    |
+| 0x6004 - 0x63FF | Reserved                         |
+| 0x6400 - 0x67FF | Reserved for 65C51               |
+| 0x6800 - 0x6BFF | Reserved for Device 4            |
+| 0x6C00 - 0x6FFF | Reserved for Device 5            |
+| 0x7000 - 0x73FF | Reserved for Device 6            |
+| 0x7400 - 0x77FF | Reserved for Device 7            |
+| 0x7800 - 0x7FFF | Reserved or more RAM             |
+| 0x8000 - 0xFFF8 | Main ROM                         |
+| 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
+
+
 ## Software
-With the bank of LEDs on the outputs of the VIO, This little snippet of code uses the rotate and conditional instructions to create a bouncing light effect
+With the bank of LEDs on the outputs of the VIA, This little snippet of code uses the rotate and conditional instructions to create a bouncing light effect
 ```
     0xa9, 0xff,       // lda 0xff
     0x8d, 0x02, 0x60, // sta 0x6002
@@ -197,7 +300,7 @@ With the bank of LEDs on the outputs of the VIO, This little snippet of code use
 
 ### Simple Machine Code Generator
 I threw together a simple C program to facilitate building the binary files with specified machine code.
-I used this instead of the script Ben used, but it is functionally identical. 
+I used this instead of the script Ben used, but it is functionally identical.
 
 - [ ] Add the code.
 
