@@ -1,4 +1,7 @@
 # Makefile to crosscompile using CC65
+
+# This c runtime is based off the instruction to build a custom runtime for cc65 here:
+# https://www.cc65.org/doc/customizing.html
 EXEPKG=becrt.bin
 LIBPKG=becrt.lib
 ROMIMG=$(EXEPKG).rom.bin
@@ -16,12 +19,13 @@ LIBS=
 #DEPDIR=deps
 #DEPS=$(SRCS:%$(SRCEXT)=$(DEPDIR)/%.d)
 OBJDIR=obj
-EXEOBJS=$(patsubst %.s,$(OBJDIR)/%.o,$(patsubst %.c,$(OBJDIR)/%.o,$(EXESRCS)))
-LIBOBJS=$(patsubst %.s,$(OBJDIR)/%.o,$(patsubst %.c,$(OBJDIR)/%.o,$(LIBSRCS)))
+EXEOBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(patsubst %.s,$(OBJDIR)/%.o,$(EXESRCS)))
+LIBOBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(patsubst %.s,$(OBJDIR)/%.o,$(LIBSRCS)))
 ASMDIR=asm
 
 MAPFILE=becrt.map
-#ASMS=$(SRCS:%$(SRCEXT)=$(ASMDIR)/%.s)
+SRCS=$(EXESRCS) $(LIBSRCS)
+ASMS=$(patsubst %.c,$(ASMDIR)/%.s,$(patsubst %.s,$(ASMDIR)/%.s,$(SRCS)))
 #DOCDIR=doc
 #DOCCMD=doxygen
 #DOCCFG=Doxyfile
@@ -34,7 +38,7 @@ pkg: $(PKG)
 $(LIBPKG): $(LIBOBJS)
 	@echo "Generating $@"
 	rm -f $@
-	$(AR) a $@ $(LIBOBJS)
+	$(AR) r $@ $(LIBOBJS)
 
 $(EXEPKG): $(LIBPKG) $(EXEOBJS)
 	@echo "Generating $@"
@@ -42,12 +46,13 @@ $(EXEPKG): $(LIBPKG) $(EXEOBJS)
 
 $(ROMIMG): $(EXEPKG)
 
-hexdump: $(ROMIMG)
+test: $(ROMIMG)
 	hexdump -C $<
 
-program: $(ROMIMG)
+install: $(ROMIMG)
 	minipro -p AT28C256 -w $<
 
+## OBJ management
 $(OBJDIR):
 	$(MKDIR) $(OBJDIR)
 
@@ -55,6 +60,11 @@ $(OBJDIR)/%.o: $(ASMDIR)/%.s | $(OBJDIR) $(ASMDIR)
 	@echo "ASM $<"
 	$(ASM) $(ASMFLAGS) $< -o $@
 
+clean-obj:
+	rm -rf $(OBJDIR)
+
+
+## ASM management
 $(ASMDIR):
 	$(MKDIR) $(ASMDIR)
 
@@ -66,11 +76,17 @@ $(ASMDIR)/%.s: %.s | $(ASMDIR)
 	@echo "CP $<"
 	$(CP) $< $@
 
+asms: $(ASMS)
+
+clean-asm:
+	rm -rf $(ASMDIR)
+
+## DEP management
 # $(DEPDIR):
 # 	$(MKDIR) $(DEPDIR)
 #
 # $(DEPDIR)/%.d: %.c | $(DEPDIR) $(ASMDIR)
-# 	$(CC) $(CFLAGS) $< --create-full-dep $@ -o $(ASMDIR)
+# 	$(CC) $(CFLAGS) $< --create-full-dep $@ -o $(ASMDIR)/
 # 	$(SED) -i 's+\($*\)\.o[ :]*+$(OBJDIR)/\1.o $@ : +g' $@
 # --create-full-dep
 #
@@ -79,34 +95,10 @@ $(ASMDIR)/%.s: %.s | $(ASMDIR)
 # 	$(SED) -i 's+\($*\)\.o[ :]*+$(OBJDIR)/\1.o $@ : +g' $@
 # --create-full-dep
 
-#asms: $(ASMS)
-
-
-#test: $(PKG)
-#	./$(PKG)
-
-#install: $(PKG)
-#	cp $(PKG) $(PREFIX)/bin/
-#	cp $(PKG)rc $(CONFIGDIR)/
-
-clean-asm:
-	rm -rf $(ASMDIR)
-
-clean-obj:
-	rm -rf $(OBJDIR)
-
 #clean-dep:
 #	rm -rf $(DEPDIR)
 
-clean: clean-obj clean-asm
-	rm -rf *~
-
-#clean-pkg: clean clean-dep
-clean-pkg: clean
-	rm -rf $(PKG) $(MAPFILE) $(LIBPKG) $(ROMIMG)
-
-rebuild: clean-pkg pkg
-
+## DOC management
 #$(DOCCFG):
 #	$(DOCCMD) -g $(DOCCFG)
 #	$(SED) -i 's+^OUTPUT_DIRECTORY *=.*$$+OUTPUT_DIRECTORY       = $(DOCDIR)+g' $(DOCCFG)
@@ -124,6 +116,16 @@ rebuild: clean-pkg pkg
 #
 #rebuild-docs: clean-docs docs
 
+## CLEAN UP
+clean: clean-obj clean-asm
+	rm -rf *~
+
+#clean-pkg: clean clean-dep
+clean-pkg: clean
+	rm -rf $(PKG) $(MAPFILE) $(LIBPKG) $(ROMIMG)
+
+rebuild: clean-pkg pkg
+
 #all: $(PKG) docs
 all: $(PKG)
 
@@ -135,21 +137,3 @@ rebuild-all: clean-all all
 #include $(DEPS)
 
 $(V).SILENT:
-
-#!/bin/sh
-
-# This c runtime is based off the instruction to build a custom runtime for cc65 here:
-# https://www.cc65.org/doc/customizing.html
-
-#  cc65 -t none -O --cpu 65c02 main.c
-#  ca65 --cpu 65c02 vectors.s
-#  ca65 --cpu 65c02 main.s
-#  ca65 --cpu 65c02 crt0.s
-#  ca65 --cpu 65c02 pckybd.s
-#  ca65 --cpu 65c02 interrupt.s
-#  rm -f tkotz.lib
-#  ar65 a tkotz.lib crt0.o pckybd.o interrupt.o
-#  ld65 -v -C be6502.cfg -m memory.map main.o vectors.o tkotz.lib --lib none.lib
-#  #ld65 -C be6502.cfg -m memory.map main.o vectors.o crt0.o interrupt.o be6502.lib pckybd.o
-#  #hexdump -C a.out.rom.bin
-#  ## minipro -p AT28C256 -w a.out.rom.bin
