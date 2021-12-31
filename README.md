@@ -138,7 +138,7 @@ to
 ```
 
 So now the question is can we use this reclaimed NAND gate to either get us back
-protection on writes to ROM changing RAM? Maybe we  get A15 back into the
+protection on writes to ROM changing RAM? Maybe we get A15 back into the
 calculation for the RAM chip select.
 
 ```
@@ -188,7 +188,27 @@ VIA:
 
 #### 3 to 8 Line decoder (74138)
 
-I don't know if this is as useful as it seemed at first.
+I don't know if this is as useful as it seemed at first. The decoder can take
+decoder 3 address lines and decode them to 8 output lines. allowing an address
+space to be easily divided between 8 devices. the 74138 is designed to control
+active low chip select devices. It has it chip selects to make it easier to turn
+off a whole set of devices. It has 1 active high chip selects and 2 active
+low chip selects.
+
+| CS | /CS | A | B | C | Y0 | Y1 | Y2 | Y3 | Y4 | Y5 | Y6 | Y7 |
+|----|-----|---|---|---|----|----|----|----|----|----|----|----|
+| L  | X   | X | X | X | H  | H  | H  | H  | H  | H  | H  | H  |
+| X  | H   | X | X | X | H  | H  | H  | H  | H  | H  | H  | H  |
+| H  | L   | L | L | L | L  | H  | H  | H  | H  | H  | H  | H  |
+| H  | L   | L | L | H | H  | L  | H  | H  | H  | H  | H  | H  |
+| H  | L   | L | H | L | H  | H  | L  | H  | H  | H  | H  | H  |
+| H  | L   | L | H | H | H  | H  | H  | L  | H  | H  | H  | H  |
+| H  | L   | H | L | L | H  | H  | H  | H  | L  | H  | H  | H  |
+| H  | L   | H | L | H | H  | H  | H  | H  | H  | L  | H  | H  |
+| H  | L   | H | H | L | H  | H  | H  | H  | H  | H  | L  | H  |
+| H  | L   | H | H | H | H  | H  | H  | H  | H  | H  | H  | L  |
+
+
 Additional logic may still be needed to use the CLK line to drive the RAM and
 the limited number of inputs really causes the chip to drive the layout making it
 very difficult to build a layout compatible with the original design. But let's see
@@ -202,6 +222,12 @@ Decoder:
    B = A13
    C = A12
    CS = A15
+RAM:
+   /CS = A15 [Would need to be (& CLK) to work ]
+ROM:
+   /CS = Y7 [Would be nice to OR together some line to get more valid ROM space]
+VIA:
+   /CS = Y0
 ```
 
 | Address Range   | Description                      |
@@ -219,9 +245,10 @@ Decoder:
 | 0xF000 - 0xFFF8 | Main ROM (Y7)                    |
 | 0xFFFA - 0xFFFF | Vector ROM (6502 Vector Table)   |
 
-If we are keeping the NAND gate in order to clock the RAM CS correctly. Then we can
-chain the VIA off the decoder in order to get more expansion for more VIA or other
-peripherals.
+If we are keeping the NAND gate in order to clock the RAM CS correctly, adding
+the decoder does let us split the "wasted" address space allocated to the VIA to
+other peripheral expansion. Then we can chain the VIA off the decoder in order
+to get more expansion for more VIA or other peripherals.
 ```
 ROM:
    /CS = NOT(A15)
@@ -242,8 +269,7 @@ VIA:
 |-----------------|----------------------------------|
 | 0x0000 - 0x00FF | Zero Page (6502 Fast access RAM) |
 | 0x0100 - 0x01FF | Call Stack (6502 Stack)          |
-| 0x0200 - 0x3FFF | Main RAM                         |
-| 0x4000 - 0x5FFF | Reserved                         |
+| 0x0200 - 0x5FFF | Main RAM                         |
 | 0x6000 - 0x63FF | VIA Interface (Y0)               |
 | 0x6400 - 0x67FF | Y1                               |
 | 0x6800 - 0x6BFF | Y2                               |
@@ -259,9 +285,19 @@ This gets the target interface, but requires us to add an extra chip.
 
 
 #### GAL16V8
-The GAL16V8 only has 8 outputs. So it can only drive 8 devices without additional
-logic. Though that can be based on fairly complex internal logic and change by just
-reprogramming the GAL.
+There are several clones of this part. I'm using the ATF16V8 that is still in
+production. This part is nice selection for this project because it can be
+programmed with the same minipro programmer used for the EEPROM and has a similar
+footprint to the Quad Nand gate so it will fit on the bread board. I've also
+independently played around with these. <https://github.com/tedkotz/PLD_16V8>
+
+The GAL16V8 has 8 I/O pins and 9 input pins. So it can only drive 8 devices
+without additional logic. Though that can be based on fairly complex internal
+logic relying on the CLK and the top 8 address lines. This could allow the
+peripherals to have much tighter allocations, give RAM some Non-contiguous
+allocations, and change the memory map by just reprogramming the GAL. We could
+take advantage of this and make separate images for the having each device
+reserve blocked used or map to RAM.
 
 | Address Range   | Description                      |
 |-----------------|----------------------------------|
@@ -302,9 +338,12 @@ With the bank of LEDs on the outputs of the VIA, This little snippet of code use
 I threw together a simple C program to facilitate building the binary files with specified machine code.
 I used this instead of the script Ben used, but it is functionally identical.
 
-- [ ] Add the code.
+See the Code <hand_asm/gen_bin.c>
 
 ### CA65 and linker file
+I used the assembler and linker that comes with the cc65 c compiler for the video 4
+code. you can see that [here](video4/)
+
 ### C runtime for CC65
 ### PS/2 Keyboard support (Bit Banging)
 This started with the code from <http://sbc.rictor.org/io/pckb6522.html>.
