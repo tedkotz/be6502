@@ -338,11 +338,11 @@ With the bank of LEDs on the outputs of the VIA, This little snippet of code use
 I threw together a simple C program to facilitate building the binary files with specified machine code.
 I used this instead of the script Ben used, but it is functionally identical.
 
-See the Code [hand_asm/gen_bin.c]
+You canee the Code (hand_asm/gen_bin.c)
 
 ### CA65 and linker file
 I used the assembler and linker that comes with the cc65 c compiler for the video 4
-code. you can see that [here](video4/)
+code. You can see that [here](video4/).
 
 ### C runtime for CC65
 ### PS/2 Keyboard support (Bit Banging)
