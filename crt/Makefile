@@ -9,9 +9,9 @@ PKG=$(EXEPKG)
 LIBSRCS=crt0.s pckybd.s interrupt.s
 EXESRCS=main.c vectors.s
 CC=cc65
-CFLAGS=-t none -O --cpu 65c02
+CFLAGS=-t none -Os --cpu 65c02 -T -g
 ASM=ca65
-ASMFLAGS=--cpu 65c02
+ASMFLAGS=--cpu 65c02 -U -g
 LD=ld65
 AR=ar65
 LIBS=
@@ -89,6 +89,7 @@ clean-asm:
 # 	$(CC) $(CFLAGS) $< --create-full-dep $@ -o $(ASMDIR)/
 # 	$(SED) -i 's+\($*\)\.o[ :]*+$(OBJDIR)/\1.o $@ : +g' $@
 # --create-full-dep
+#--dep-target target
 #
 # $(DEPDIR)/%.d: %.s | $(DEPDIR)
 # 	$(CC) $(CFLAGS) -c $< -MM -o $@
