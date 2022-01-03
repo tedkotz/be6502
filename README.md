@@ -4,12 +4,13 @@ Collection of notes, software and upgrades for Ben Eater's 6502 Computer
 ## Description
 I've been having a ton of fun with this project. Probably to the point my coworkers are sick of hearing about it. I had a lot of the parts list for the computer laying around, so I just ordered Ben's Clock kit. While I was waiting for that I used my arduino mega to generate the clock as well as look at the signals. Which was fun because I could clock up to 8Mhz. This was only up through one of the very early videos so does not necessarily run with RAM and the additional decode logic at that speed.
 
-|File       |Description                                                           |
-|-----------|----------------------------------------------------------------------|
-|hand_asm/  |C code to build bin from hand assembled code and early video examples |
-|bounce/    |One of my early bouncing lights examples, modified to use assembler   |
-|video4/    |Assembler code from video 4                                           |
-|crt/       |A sample CC65 environment that has display and PS/2 keyboard I/O      |
+|File            |Description                                                           |
+|----------------|----------------------------------------------------------------------|
+|hand_asm/       |C code to build bin from hand assembled code and early video examples |
+|bounce/         |One of my early bouncing lights examples, modified to use assembler   |
+|video4/         |Assembler code from video 4                                           |
+|crt/            |A sample CC65 environment that has display and PS/2 keyboard I/O      |
+|echo_console/   |wokring space for developing console with well behaved input echo     |
 
 ## Arduino
 ### clock generation
