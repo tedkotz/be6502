@@ -47,8 +47,21 @@ extern void enable_ints(void);
  */
 extern void console_reset(void);
 
-extern void clear_display(void);
+/**
+ * [Description]
+ *
+ * @param
+ * @return
+ */
+extern char* __fastcall__ cgets (char* buf, unsigned char size);
 
+/**
+ * [Description]
+ *
+ * @param
+ * @return
+ */
+extern unsigned char __fastcall__ echo (unsigned char onoff);
 
 
 #endif // IO_ECHO_H

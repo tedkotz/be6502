@@ -6,8 +6,10 @@
 ;
 ; Checks for a BRK instruction and returns from all valid interrupts.
 
-.import   _init, _main_interrupt
-.export   _irq_int, _nmi_int
+.import   _init, _main_interrupt, _gotoxy
+.export   _irq_int, _nmi_int, gotoxy
+.importzp ptr1
+.exportzp _ptr1
 
 .segment  "CODE"
 
@@ -47,3 +49,5 @@ irq:       PLA                    ; Restore accumulator contents
 break:     ;JMP _stop             ; If BRK is detected, something very bad
            stp                    ;   has happened, so stop running
 
+gotoxy = _gotoxy
+_ptr1 = ptr1
