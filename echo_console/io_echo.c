@@ -10,11 +10,15 @@
 /* Includes ******************************************************************/
 #include "io_echo.h"
 
-#include <stdio.h>
-#include <conio.h>
-#include <string.h>
-#include "pckybd.h"
 #include "cc65internals.h"
+#include "pckybd.h"
+#include <assert.h>
+#include <conio.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
 
 /* Defines *******************************************************************/
 // PORTB
@@ -49,6 +53,12 @@
 #define LCD_CTRL_SET_ADDR_BIT    0x80
 
 
+#define DISPLAY_RAM_ROWS 8
+#define DISPLAY_RAM_COLS 32
+
+#define CONSOLE_DEFAULT_FLAGS {1 ,1}
+#define CONSOLE_DEFAULT_NEWLINE newline_scrollup
+
 
 /* Types *********************************************************************/
 typedef struct ConsoleIoFlags
@@ -58,20 +68,28 @@ typedef struct ConsoleIoFlags
 } ConsoleIoFlags;
 
 /* Interfaces ****************************************************************/
+static void newline_wrap (void);
+static void newline_drop (void);
+static void newline_scrollup (void);
+
 /* Data **********************************************************************/
-const char line_starts[LCD_ROWS] =
+const char line_starts[] =
 {
     0x80,  // 0x80 | 0x00
     0xC0,  // 0x80 | 0x40
     0x94,  // 0x80 | 0x14
     0xD4   // 0x80 | 0x54
 };
+const uint8_t LCD_ROWS=4;
+const uint8_t LCD_COLS=20;
 
 
-char display_ram[LCD_ROWS][LCD_COLS];
+char display_ram[DISPLAY_RAM_ROWS][DISPLAY_RAM_COLS];
 static char cursor_row=0;
 static char cursor_col=0;
-static ConsoleIoFlags flags={1,1};
+static const ConsoleIoFlags default_flags=CONSOLE_DEFAULT_FLAGS;
+static ConsoleIoFlags flags=CONSOLE_DEFAULT_FLAGS;
+static void (*newline_handler) (void) = CONSOLE_DEFAULT_NEWLINE;
 //#pragma zpsym("flags");
 //#pragma zpsym("cursor_row");
 //#pragma zpsym("cursor_col");
@@ -148,89 +166,13 @@ void lcd_output(char a)
 
 void clrscr (void)
 {
-    memset(display_ram, ' ', LCD_ROWS * LCD_COLS);
+    memset(display_ram, ' ', DISPLAY_RAM_ROWS * DISPLAY_RAM_COLS);
     // Clear Display
     // 0000 0001
     lcd_control(LCD_CTRL_CLRSCR);
     cursor_row=0;
     cursor_col=0;
 }
-
-// void refresh_display(void)
-// {
-//     char i=0;
-//     do
-//     {
-//         char j=0;
-//         char* buf=display_ram[i];
-//         lcd_control(line_starts[i]);
-//         do
-//         {
-//             lcd_output(buf[j]);
-//             ++j;
-//         } while( j<LCD_COLS );
-//         ++i;
-//     } while( i<LCD_ROWS);
-// }
-//
-// void advance_display_row(void)
-// {
-//     if(cursor_row<(LCD_ROWS-1))
-//     {
-//         ++cursor_row;
-//     }
-//     else
-//     {
-//         char i=0;
-//         char* buf = (void*)display_ram;
-//         // copy first 2 lines
-//         do
-//         {
-//             buf[i] = buf[i+LCD_COLS];
-//             ++i;
-//         } while( i < ((LCD_ROWS-1) * LCD_COLS) );
-//         do
-//         {
-//             buf[i] = ' ';
-//             ++i;
-//         } while( i < (LCD_ROWS * LCD_COLS) );
-//         cursor_row=(LCD_ROWS-1);
-//     }
-// }
-//
-// void write_to_display(char c)
-// {
-//     if(c=='\n')
-//     {
-//         refresh_display();
-//         cursor_col=0;
-//         advance_display_row();
-//     }
-//     else if(c=='\r')
-//     {
-//         refresh_display();
-//         advance_display_row();
-//     }
-//     else if(c=='\f')
-//     {
-//         clrscr();
-//     }
-//     else if(cursor_col<LCD_COLS)
-//     {
-//          display_ram[cursor_row][cursor_col]=c;
-//          ++cursor_col;
-//     }
-// }
-//
-// void lcd_output_str( const char* str )
-// {
-//     while(*str)
-//     {
-//         write_to_display(*str);
-//         ++str;
-//     }
-// }
-
 
 // This is called by printf, etc
 // It needs to be expanded to handle different file descriptors
@@ -251,8 +193,6 @@ int write (int /*fd*/, const char* buf, int count)
     }
     return i;
 }
-
-//extern char inputstore;
 
 //  Design target
 //  https://pubs.opengroup.org/onlinepubs/9699919799/functions/read.html
@@ -276,10 +216,7 @@ int read(int /*fildes*/, char *buf, size_t nbyte)
     return count;
 }
 
-
-
-
-void console_reset(void)
+static void _console_reset(void)
 {
     // SET VIO pin MUX settings to control screen and keyboard
     *VIO0_CFG = 0xFF;
@@ -297,7 +234,42 @@ void console_reset(void)
     // 0000 0110          Set display mode to auto increment to the right
     lcd_control(0x06);
 
+    flags = default_flags;
+    newline_handler = CONSOLE_DEFAULT_NEWLINE;
+
     clrscr();
+}
+
+void __fastcall__ _afailed (const char* file, unsigned line)
+{
+    _console_reset();
+    raise (SIGABRT);
+    cprintf ("%s:%u:ASSERT FAILED\n", file, line);
+    exit (EXIT_ASSERT);
+}
+
+void __fastcall__ failLockUp( unsigned int errCode )
+{
+    char LEDs=0;
+    cprintf ("EC %u\n", errCode);
+    for(;;)
+    {
+        unsigned int i=0x2000;
+        LEDs ^= 0xFF;
+        KBSLED(LEDs);
+        while( i )
+        {
+            --i;
+        }
+    }
+}
+
+void console_reset(void)
+{
+    _console_reset();
+
+    assert(((unsigned)LCD_ROWS)<=((unsigned)DISPLAY_RAM_ROWS));
+    assert(((unsigned)LCD_COLS)<=((unsigned)DISPLAY_RAM_COLS));
 }
 
 void __fastcall__ screensize (unsigned char* x, unsigned char* y)
@@ -343,12 +315,10 @@ void __fastcall__ cclearxy (unsigned char x, unsigned char y, unsigned char leng
     cclear(length);
 }
 
-void newline (void)
+static void _newline_finish(void)
 {
     char i;
     char* row;
-    ++cursor_row;
-    if (cursor_row >= LCD_ROWS) cursor_row=0;
 
     lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row]);
     row=display_ram[cursor_row];
@@ -361,13 +331,64 @@ void newline (void)
     lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row] + cursor_col);
 }
 
+static void newline_wrap (void)
+{
+    ++cursor_row;
+    if (cursor_row >= LCD_ROWS)
+    {
+        cursor_row=0;
+    }
+
+    _newline_finish();
+}
+
+static void newline_drop (void)
+{
+    ++cursor_row;
+    if (cursor_row >= LCD_ROWS)
+    {
+        cursor_row=(LCD_ROWS-1);
+    }
+
+    _newline_finish();
+}
+
+void newline_scrollup (void)
+{
+    ++cursor_row;
+    if (cursor_row >= LCD_ROWS)
+    {
+        unsigned char x;
+        unsigned char y;
+        const uint8_t working_rows=(LCD_ROWS-1);
+        memmove(&display_ram[0][0], &display_ram[1][0], working_rows * (uint8_t)DISPLAY_RAM_COLS);
+        for( y=0; y<cursor_row; ++y)
+        {
+            // Move cursor to xy(0,i)
+            lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[y]);
+            for( x=0; x<LCD_COLS; ++x)
+            {
+                lcd_output(display_ram[y][x]);
+            }
+        }
+        cursor_row = working_rows;
+    }
+
+    _newline_finish();
+}
+
 void __fastcall__ cputc (char c)
 {
+    // CC65 conio workaround
+    // conio assumes that ptr1 and tmp1 are preserved
+    // but the CC65 compiler may use them
+    // so push them on to the local variable stack
     char* preservePtr1=__PTR1__;
-    unsigned int preserveSreg=__SREG__;
+    unsigned int preserveTmp1=__TMP1__;
+
     if(c=='\n')
     {
-        newline();
+        newline_handler();
     }
     else if(c=='\r')
     {
@@ -384,21 +405,21 @@ void __fastcall__ cputc (char c)
          display_ram[cursor_row][cursor_col]=c;
          ++cursor_col;
     }
+
+    // Restore zp registers from local variable stack.
     __PTR1__ = preservePtr1;
-    __SREG__ = preserveSreg;
+    __TMP1__ = preserveTmp1;
 }
 
 char cgetc (void)
 {
     char c;
-    char* preservePtr1=__PTR1__;
-    unsigned int preserveSreg=__SREG__;
-    if (flags.cursor) lcd_control(LCD_CTRL_DISPON_CURSON);
+    if (flags.cursor)
+    {
+        lcd_control(LCD_CTRL_DISPON_CURSON);
+    }
     c=KBINPUT();
-    // if(c == '\r') c = '\n';
     lcd_control(LCD_CTRL_DISPON_CURSOFF);
-    __PTR1__ = preservePtr1;
-    __SREG__ = preserveSreg;
     return c;
 }
 
@@ -463,4 +484,19 @@ char* __fastcall__ cgets (char* buf, unsigned char size)
         *buf = '\0';
     }
     return retVal;
+}
+
+void newline ( unsigned mode )
+{
+    switch(mode)
+    {
+        case 1:
+            newline_handler = newline_wrap;
+
+        case 2:
+            newline_handler = newline_drop;
+
+        default:
+            newline_handler = newline_scrollup;
+    }
 }

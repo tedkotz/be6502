@@ -1,6 +1,6 @@
 #include "io_echo.h"
-#include <stdio.h>
 #include <conio.h>
+#include <stdio.h>
 
 static char shared_val=0;
 
@@ -10,55 +10,58 @@ void main_interrupt( void) {
 
 int main( )
 {
-    char c;
-    char tmp[LCD_COLS+10];
-    char* tmp_ptr;
+    /* Data ******************************************************************/
+    char tmp[32];
 
+    /* Setup *****************************************************************/
     console_reset();
 
-    printf("Hello, \nWorld!\r Have a nice day!\r\n");
-    //lcd_output_str("Have a nice day!!!\n");
+    cprintf("Hello, World!\r\n");
+    //cprintf("Hello, \nWorld!\r Have a nice day!\r\n");
 
-    //for(x=1;x<100;++x)
-    //for(;;)
-    while(1)
+    /* Loop ******************************************************************/
+    for(;;)
     {
-        //scanf("%c", &c);
-        //c=getchar();
-        //if(c == '\r') c = '\n';
-        //putchar(c);
+        // Input character
+        //cscanf("%c", &tmp[0]);
+        //scanf("%c", &tmp[0]);
+        //fscanf(stdin, "%c", tmp[0]);
+        //tmp[0]=getchar();
+        tmp[0]=cgetc();
 
-        scanf("%s", tmp);
-        printf("%s\n", tmp);
+        if(tmp[0] == '\r')
+        {
+            tmp[0] = '\n';
+        }
 
-        //fgets(tmp, LCD_COLS+1, stdin);
-        //fputs(tmp,stdout);
-        //putchar('\n');
+        // Output character
+        //cputc(tmp[0]);
+        //fputc(tmp[0],stdout);
+        //putchar(tmp[0]);
+        //printf("%c", tmp[0]);
+        cprintf("Value: %c:0x%02X\r\n", tmp[0], (int)tmp[0]);
 
+
+        // Input String
         //cscanf("%s", tmp);
-        //cgets(tmp, LCD_COLS+1);
+        //fgets(tmp, sizeof(tmp), stdin);
+        //scanf("%s", tmp);
+        //fscanf(stdin, "%s", tmp);
+        //cgets(tmp, sizeof(tmp));
+
+        // Output String
+        //cprintf("%s\r\n", tmp);
+
+        //fputs(tmp,stdout);
+        //fputc('\n',stdout);
+        //fputs("\n",stdout);
+
+        //printf("%s\n", tmp);
+
+        //fprintf(stdout, "%s\n", tmp);
 
         //cputs(tmp);
         //cputs("\r\n");
-
-        //tmp_ptr=tmp;
-        //while(*tmp_ptr)
-        //{
-        //    cputc(*tmp_ptr++);
-        //}
-        //cputc('\r');
-        //cputc('\n');
-
-
-        //cprintf("%s\r\n", tmp);
-
-
-        //printf("Value: 0x%02X  0x%02X\n", x, inputstore);
-        //if(inputstore == '\r') inputstore = '\n';
-        //putchar(inputstore);
-        //printf("%c", inputstore);
-        //scanf("%c", &inputstore);
-        //KBINPUT();
     }
 
     return 0;

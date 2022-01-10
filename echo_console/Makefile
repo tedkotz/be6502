@@ -43,6 +43,7 @@ $(LIBPKG): $(LIBOBJS)
 $(EXEPKG): $(LIBPKG) $(EXEOBJS)
 	@echo "Generating $@"
 	$(LD) -C be6502.cfg -m $(MAPFILE) $(EXEOBJS) $(LIBPKG) --lib none.lib -o $@
+	grep "Segment list:" -A12 $(MAPFILE)
 
 $(ROMIMG): $(EXEPKG)
 

@@ -45,5 +45,15 @@ extern char __fastcall__ KBGET(void);
  */
 extern char __fastcall__ KBSCAN(void);
 
+/**
+ * Set the status leds on the keyboard
+ *   01 - Scroll Lock
+ *   02 - Num Lock
+ *   04 - Caps lock
+ *
+ * @param status How to set the keyboard LEDs.
+ */
+extern void __fastcall__ KBSLED(unsigned char status);
+
 
 #endif // PCKYBD_H

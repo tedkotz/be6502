@@ -97,6 +97,7 @@
     .export _KBGET
     .export _KBSCAN
     .export _KBINIT
+    .export _KBSLED
 
 ;****************************************************************************
 ;
@@ -628,8 +629,18 @@ kbsled:        lda   #$ED              ; Set the keybrd LED's from kbleds variab
                bne   kbsled            ; resend led cmd
                lda   special           ;
                and   #$07              ; ensure bits 3-7 are 0
-               jsr   kbsend            ;
-               rts                     ;
+               ;jsr   kbsend            ;
+               ;rts                     ;
+               jmp   kbsend            ;
+;
+_KBSLED:       and   #$07              ; ensure bits 3-7 are 0
+               tax                     ;
+               lda   special           ;
+               and   #$F8              ; ensure bits 0-2 are 0
+               stx   special           ;
+               ora   special           ;
+               sta   special           ;
+               bra   kbsled            ;
                                        ;
 kbhighlow:     lda   #clk              ; wait for a low to high to low transition
                bit   kbportreg         ;

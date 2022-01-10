@@ -5,7 +5,7 @@
 ; Startup code for cc65 (Single Board Computer version)
 
 .export   _init, _exit, _disable_ints, _enable_ints
-.import   _main, _KBINIT
+.import   _main, _KBINIT, _failLockUp
 
 .export   __STARTUP__ : absolute = 1        ; Mark as startup
 .import   __RAM_START__, __RAM_SIZE__       ; Linker generated
@@ -63,8 +63,14 @@ _init:    LDX     #$FF                 ; Initialize stack pointer to $01FF
 ; ---------------------------------------------------------------------------
 ; Back from main (this is also the _exit entry):  force a software break
 
-_exit:
+_exit:    CMP     #$00
+          BNE     fail
+          CPX     #$00
+          BNE     fail
+
 ;          jmp _exit
           JSR     donelib              ; Run destructors
 ;          stp
+          BRK
+fail:     JSR     _failLockUp          ; X:A still contains return code
           BRK

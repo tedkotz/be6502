@@ -32,11 +32,11 @@ extern unsigned int __REGBANK__;
 #pragma zpsym("__REGSAVE__");
 #pragma zpsym("__REGBANK__");
 
-extern void* __SP__;
-extern void* __PTR1__;
-extern void* __PTR2__;
-extern void* __PTR3__;
-extern void* __PTR4__;
+extern unsigned char* __SP__;
+extern unsigned char* __PTR1__;
+extern unsigned char* __PTR2__;
+extern unsigned char* __PTR3__;
+extern unsigned char* __PTR4__;
 #pragma zpsym("__SP__");
 #pragma zpsym("__PTR1__");
 #pragma zpsym("__PTR2__");
