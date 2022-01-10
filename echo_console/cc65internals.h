@@ -43,7 +43,7 @@ extern unsigned char* __PTR4__;
 #pragma zpsym("__PTR3__");
 #pragma zpsym("__PTR4__");
 
-
+extern unsigned char __CURSOR__;
 
 /* Functions *****************************************************************/
 

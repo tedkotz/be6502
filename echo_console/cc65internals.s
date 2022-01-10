@@ -5,8 +5,13 @@
 ; Make some assembly symbols C accessible.
 ;
 
+
+.import cursor
+.export ___CURSOR__
+
 .importzp	sp, sreg, regsave, regbank
 .importzp	tmp1, tmp2, tmp3, tmp4, ptr1, ptr2, ptr3, ptr4
+
 
 .exportzp ___SP__, ___PTR1__, ___PTR3__, ___PTR3__, ___PTR4__
 .exportzp ___SREG__, ___REGSAVE__, ___REGBANK__
@@ -28,4 +33,6 @@ ___TMP4__ = tmp4
 ___SREG__ = sreg
 ___REGSAVE__ = regsave
 ___REGBANK__ = regbank
+
+___CURSOR__ = cursor
 

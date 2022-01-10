@@ -64,7 +64,7 @@ extern char* __fastcall__ cgets (char* buf, unsigned char size);
  * @param
  * @return
  */
-extern unsigned char __fastcall__ echo (unsigned char onoff);
+extern unsigned char __fastcall__ console_echo (unsigned char onoff);
 
 
 #endif // IO_ECHO_H

@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <conio.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,17 +57,9 @@
 #define DISPLAY_RAM_ROWS 8
 #define DISPLAY_RAM_COLS 32
 
-#define CONSOLE_DEFAULT_FLAGS {1 ,1}
 #define CONSOLE_DEFAULT_NEWLINE newline_scrollup
 
-
 /* Types *********************************************************************/
-typedef struct ConsoleIoFlags
-{
-    unsigned cursor:1;
-    unsigned echo:1;
-} ConsoleIoFlags;
-
 /* Interfaces ****************************************************************/
 static void newline_wrap (void);
 static void newline_drop (void);
@@ -85,12 +78,11 @@ const uint8_t LCD_COLS=20;
 
 
 char display_ram[DISPLAY_RAM_ROWS][DISPLAY_RAM_COLS];
-static char cursor_row=0;
-static char cursor_col=0;
-static const ConsoleIoFlags default_flags=CONSOLE_DEFAULT_FLAGS;
-static ConsoleIoFlags flags=CONSOLE_DEFAULT_FLAGS;
+static uint8_t cursor_row=0;
+static uint8_t cursor_col=0;
+static bool echo = true;
 static void (*newline_handler) (void) = CONSOLE_DEFAULT_NEWLINE;
-//#pragma zpsym("flags");
+//#pragma zpsym("echoOn");
 //#pragma zpsym("cursor_row");
 //#pragma zpsym("cursor_col");
 
@@ -203,7 +195,7 @@ int read(int /*fildes*/, char *buf, size_t nbyte)
     {
         *buf = cgetc();
         if( *buf == '\r' ) *buf = '\n';
-        if(flags.echo)
+        if(echo)
         {
             if ( '\n' == *buf )
             {
@@ -234,7 +226,8 @@ static void _console_reset(void)
     // 0000 0110          Set display mode to auto increment to the right
     lcd_control(0x06);
 
-    flags = default_flags;
+    echo = true;
+    __CURSOR__ = true;
     newline_handler = CONSOLE_DEFAULT_NEWLINE;
 
     clrscr();
@@ -278,24 +271,22 @@ void __fastcall__ screensize (unsigned char* x, unsigned char* y)
     *y=LCD_ROWS;
 }
 
-void __fastcall__ gotoxy (unsigned char x, unsigned char y)
-{
-    if( (x < LCD_COLS) && (y < LCD_ROWS) )
-    {
-        cursor_col = x;
-        cursor_row = y;
-        lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[y] + x);
-    }
-}
-
 void __fastcall__ gotox (unsigned char x)
 {
-    gotoxy(x, cursor_row);
+    cursor_col = (x < LCD_COLS) ? x : 0;
+    lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row] + cursor_col);
 }
 
 void __fastcall__ gotoy (unsigned char y)
 {
-    gotoxy(cursor_col, y);
+    cursor_row = (y < LCD_ROWS) ? y : 0;
+    lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row] + cursor_col);
+}
+
+void __fastcall__ gotoxy (unsigned char x, unsigned char y)
+{
+    cursor_row = (y < LCD_ROWS) ? y : 0;
+    gotox(x);
 }
 
 void __fastcall__ cclear (unsigned char length)
@@ -414,7 +405,7 @@ void __fastcall__ cputc (char c)
 char cgetc (void)
 {
     char c;
-    if (flags.cursor)
+    if (__CURSOR__)
     {
         lcd_control(LCD_CTRL_DISPON_CURSON);
     }
@@ -423,30 +414,16 @@ char cgetc (void)
     return c;
 }
 
-unsigned char __fastcall__ cursor (unsigned char onoff)
+unsigned char __fastcall__ console_echo (unsigned char onoff)
 {
-    unsigned char returnVal = flags.cursor;
+    unsigned char returnVal = echo;
     if( onoff )
     {
-        flags.cursor = 1;
+        echo = true;
     }
     else
     {
-        flags.cursor = 0;
-    }
-    return returnVal;
-}
-
-unsigned char __fastcall__ echo (unsigned char onoff)
-{
-    unsigned char returnVal = flags.echo;
-    if( onoff )
-    {
-        flags.echo = 1;
-    }
-    else
-    {
-        flags.echo = 0;
+        echo = false;
     }
     return returnVal;
 }
@@ -468,7 +445,7 @@ char* __fastcall__ cgets (char* buf, unsigned char size)
         *buf = cgetc();
         while( *buf != '\r' && *buf != '\n' && (size>1) )
         {
-            if(flags.echo)
+            if(echo)
             {
                 cputc(*buf);
             }
@@ -476,7 +453,7 @@ char* __fastcall__ cgets (char* buf, unsigned char size)
             ++buf;
             *buf = cgetc();
         }
-        if(flags.echo)
+        if(echo)
         {
             cputc('\r');
             cputc('\n');
@@ -486,7 +463,7 @@ char* __fastcall__ cgets (char* buf, unsigned char size)
     return retVal;
 }
 
-void newline ( unsigned mode )
+void console_newline ( unsigned mode )
 {
     switch(mode)
     {

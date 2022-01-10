@@ -39,7 +39,7 @@ int main( )
         //fputc(tmp[0],stdout);
         //putchar(tmp[0]);
         //printf("%c", tmp[0]);
-        cprintf("Value: %c:0x%02X\r\n", tmp[0], (int)tmp[0]);
+        cprintf("\r\nValue: %c:0x%02X", tmp[0], (int)tmp[0]);
 
 
         // Input String
