@@ -14,8 +14,6 @@ int main( )
     char tmp[32];
 
     /* Setup *****************************************************************/
-    console_reset();
-
     cprintf("Hello, World!\r\n");
     //cprintf("Hello, \nWorld!\r Have a nice day!\r\n");
 

@@ -76,6 +76,14 @@ const char line_starts[] =
 const uint8_t LCD_ROWS=4;
 const uint8_t LCD_COLS=20;
 
+// const char line_starts[] =
+// {
+//     0x80,  // 0x80 | 0x00
+//     0xC0,  // 0x80 | 0x40
+// };
+// const uint8_t LCD_ROWS=2;
+// const uint8_t LCD_COLS=16;
+
 
 char display_ram[DISPLAY_RAM_ROWS][DISPLAY_RAM_COLS];
 static uint8_t cursor_row=0;
@@ -377,24 +385,34 @@ void __fastcall__ cputc (char c)
     char* preservePtr1=__PTR1__;
     unsigned int preserveTmp1=__TMP1__;
 
-    if(c=='\n')
+    switch(c)
     {
-        newline_handler();
-    }
-    else if(c=='\r')
-    {
-        cursor_col = 0;
-        lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row]);
-    }
-    else if(c=='\f')
-    {
-        clrscr();
-    }
-    else if(cursor_col<LCD_COLS)
-    {
-        lcd_output(c);
-         display_ram[cursor_row][cursor_col]=c;
-         ++cursor_col;
+        case '\b':
+            gotox(cursor_col-1);
+            lcd_output(' ');
+            lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row]+cursor_col);
+            break;
+
+        case '\f':
+            clrscr();
+            break;
+
+        case '\n':
+            newline_handler();
+            break;
+
+        case '\r':
+            cursor_col = 0;
+            lcd_control (LCD_CTRL_SET_ADDR_BIT | line_starts[cursor_row]);
+            break;
+
+        default:
+            if(cursor_col<LCD_COLS)
+            {
+                lcd_output(c);
+                display_ram[cursor_row][cursor_col]=c;
+                ++cursor_col;
+            }
     }
 
     // Restore zp registers from local variable stack.

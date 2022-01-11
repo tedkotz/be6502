@@ -4,8 +4,8 @@
 ;
 ; Startup code for cc65 (Single Board Computer version)
 
-.export   _init, _exit, _disable_ints, _enable_ints
-.import   _main, _KBINIT, _failLockUp
+.export   _init, _exit, _disable_ints, _enable_ints, gotoxy
+.import   _main, _KBINIT, _failLockUp, _console_reset, _clrscr, _cputs, _gotoxy
 
 .export   __STARTUP__ : absolute = 1        ; Mark as startup
 .import   __RAM_START__, __RAM_SIZE__       ; Linker generated
@@ -14,8 +14,15 @@
 
 .include  "zeropage.inc"
 
+
+; Needed by conio cputs implementation which assumes asm version of gotoxy.
+gotoxy = _gotoxy
+
 ; ---------------------------------------------------------------------------
 ; Place the startup code in a special segment
+.segment	"RODATA"
+kbdMessage:        .asciiz "Keyboard wait..."
+
 
 .segment  "STARTUP"
 
@@ -53,7 +60,12 @@ _init:    LDX     #$FF                 ; Initialize stack pointer to $01FF
           JSR     copydata             ; Initialize DATA segment
           JSR     initlib              ; Run constructors
 
+          JSR     _console_reset
+          LDA     #<kbdMessage
+          LDX     #>kbdMessage
+          JSR     _cputs
           JSR     _KBINIT
+          JSR     _clrscr
           JSR     _enable_ints
 ; ---------------------------------------------------------------------------
 ; Call main()
