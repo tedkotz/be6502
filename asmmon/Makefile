@@ -7,7 +7,7 @@ INCLUDES=../echo_console
 LIBPKG=../echo_console/becrt.lib
 ROMIMG=$(EXEPKG).rom.bin
 PKG=$(EXEPKG)
-EXESRCS=main.c vectors.s
+EXESRCS=main.c vectors.s CLI.c
 CC=cc65
 CFLAGS=-t none -Os --cpu 65c02 -T -g --include-dir $(INCLUDES)
 ASM=ca65
@@ -24,7 +24,7 @@ LIBOBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(patsubst %.s,$(OBJDIR)/%.o,$(LIBSRCS)))
 ASMDIR=asm
 
 
-MAPFILE=becrt.map
+MAPFILE=$(EXEPKG).map
 SRCS=$(EXESRCS) $(LIBSRCS)
 ASMS=$(patsubst %.c,$(ASMDIR)/%.s,$(patsubst %.s,$(ASMDIR)/%.s,$(SRCS)))
 #DOCDIR=doc
