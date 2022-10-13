@@ -20,30 +20,32 @@ extern "C" {
 /* Types *********************************************************************/
 typedef enum RegisterMode
 {
-    RegMode_Immediate,
-    RegMode_Accum,
-    RegMode_PcRelative,
-    RegMode_PcRelativeLong,
-    RegMode_Implied,
-    RegMode_Stack,
-    RegMode_Direct,
-    RegMode_DirectIndexX,
-    RegMode_DirectIndexY,
-    RegMode_DirectIndirect,
-    RegMode_DirectIndexXIndirect,
-    RegMode_DirectIndirectIndexY,
-    RegMode_DirectIndirectLong,
-    RegMode_DirectIndirectLongIndexY,
-    RegMode_Absolute,
-    RegMode_AbsoluteIndexX,
-    RegMode_AbsoluteIndexY,
-    RegMode_AbsoluteLong,
-    RegMode_AbsoluteLongIndexX,
-    RegMode_StackRelative,
-    RegMode_StackRelativeIndirectIndexY,
-    RegMode_AbsoluteIndirect,
-    RegMode_AbsoluteIndexXIndirect,
-    RegMode_BlockMove,
+    RegMode_Immediate,                                 // 2
+    RegMode_Accum,                                     // 1
+    RegMode_PcRelative,                                // 2
+    RegMode_PcRelativeLong,                            //
+    RegMode_Implied,                                   // 1
+    RegMode_Stack,                                     // 1
+    RegMode_Direct,                                    // 2
+    RegMode_DirectIndexX,                              // 2
+    RegMode_DirectIndexY,                              //
+    RegMode_DirectIndirect,                            // 2
+    RegMode_DirectIndexXIndirect,                      // 2
+    RegMode_DirectIndirectIndexY,                      // 2
+    RegMode_DirectIndirectLong,                        // 2
+    RegMode_DirectIndirectLongIndexY,                  // 2
+    RegMode_Absolute,                                  // 3
+    RegMode_AbsoluteIndexX,                            // 3
+    RegMode_AbsoluteIndexY,                            // 3
+    RegMode_AbsoluteLong,                              // 4
+    RegMode_AbsoluteLongIndexX,                        // 4
+    RegMode_StackRelative,                             // 2
+    RegMode_StackRelativeIndirectIndexY,               // 2
+    RegMode_AbsoluteIndirect,                          // 3
+    RegMode_AbsoluteIndexXIndirect,                    // 4
+    RegMode_BlockMove,                                 // 3
+    RegMode_StackInterrupt,                            // 2?
+    RegMode_WDM,                                       // 2?
 } RegisterMode;
 
 typedef struct AsmInst
