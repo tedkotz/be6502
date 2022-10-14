@@ -23,12 +23,12 @@ typedef enum RegisterMode
     RegMode_Immediate,                                 // 2
     RegMode_Accum,                                     // 1
     RegMode_PcRelative,                                // 2
-    RegMode_PcRelativeLong,                            //
+    RegMode_PcRelativeLong,                            // 3
     RegMode_Implied,                                   // 1
     RegMode_Stack,                                     // 1
     RegMode_Direct,                                    // 2
     RegMode_DirectIndexX,                              // 2
-    RegMode_DirectIndexY,                              //
+    RegMode_DirectIndexY,                              // 2
     RegMode_DirectIndirect,                            // 2
     RegMode_DirectIndexXIndirect,                      // 2
     RegMode_DirectIndirectIndexY,                      // 2
