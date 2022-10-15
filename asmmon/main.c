@@ -1,5 +1,6 @@
 #include "io_echo.h"
 #include "CLI.h"
+#include "asm.h"
 #include <conio.h>
 #include <stdio.h>
 
@@ -144,6 +145,20 @@ int move_main (int argc, char** argv)
     printDump( destAddr );
     return (int)addr;
 }
+
+int unassemble_main (int argc, char** argv)
+{
+    static char* addr=(char *)DEFAULT_ADDR;
+    char output[16];
+    if( argc > 1 )
+    {
+        addr = (char *)strtol(argv[1], NULL, 16);
+    }
+    addr += unassemble( output, addr );
+    printf("%s\n", output);
+    return (int)addr;
+}
+
 
 /**
  * [Description]
