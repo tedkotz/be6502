@@ -51,7 +51,7 @@ typedef enum RegisterMode
 
 typedef struct AsmInst
 {
-    char mnemonic[7];
+    char mnemonic[3];
     uint8_t registerMode;
 } AsmInst;
 

@@ -9,7 +9,7 @@ PKG=$(EXEPKG)
 LIBSRCS=crt0.s pckybd.s interrupt.s io_echo.c cc65internals.s
 EXESRCS=main.c vectors.s
 CC=cc65
-CFLAGS=-t none -Os --cpu 65c02 -T -g
+CFLAGS=-t none -Osir --cpu 65c02 -T -g
 ASM=ca65
 ASMFLAGS=--cpu 65c02 -U -g
 LD=ld65
@@ -42,7 +42,7 @@ $(LIBPKG): $(LIBOBJS)
 
 $(EXEPKG): $(LIBPKG) $(EXEOBJS)
 	@echo "Generating $@"
-	$(LD) -C be6502.cfg -m $(MAPFILE) $(EXEOBJS) $(LIBPKG) --lib none.lib -o $@
+	$(LD) -C be6502.cfg -vm -m $(MAPFILE) $(EXEOBJS) $(LIBPKG) --lib none.lib -o $@
 	grep "Segment list:" -A12 $(MAPFILE)
 
 $(ROMIMG): $(EXEPKG)

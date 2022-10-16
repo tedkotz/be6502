@@ -66,23 +66,23 @@ static void newline_drop (void);
 static void newline_scrollup (void);
 
 /* Data **********************************************************************/
-const char line_starts[] =
-{
-    0x80,  // 0x80 | 0x00
-    0xC0,  // 0x80 | 0x40
-    0x94,  // 0x80 | 0x14
-    0xD4   // 0x80 | 0x54
-};
-const uint8_t LCD_ROWS=4;
-const uint8_t LCD_COLS=20;
-
 // const char line_starts[] =
 // {
 //     0x80,  // 0x80 | 0x00
 //     0xC0,  // 0x80 | 0x40
+//     0x94,  // 0x80 | 0x14
+//     0xD4   // 0x80 | 0x54
 // };
-// const uint8_t LCD_ROWS=2;
-// const uint8_t LCD_COLS=16;
+// const uint8_t LCD_ROWS=4;
+// const uint8_t LCD_COLS=20;
+
+const char line_starts[] =
+{
+    0x80,  // 0x80 | 0x00
+    0xC0,  // 0x80 | 0x40
+};
+const uint8_t LCD_ROWS=2;
+const uint8_t LCD_COLS=16;
 
 
 char display_ram[DISPLAY_RAM_ROWS][DISPLAY_RAM_COLS];
@@ -448,7 +448,7 @@ unsigned char __fastcall__ console_echo (unsigned char onoff)
 
 unsigned char kbhit (void)
 {
-    return KBSCAN();
+    return (0 != KBSCAN());
 }
 
 char* __fastcall__ cgets (char* buf, unsigned char size)

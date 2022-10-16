@@ -150,12 +150,14 @@ int unassemble_main (int argc, char** argv)
 {
     static char* addr=(char *)DEFAULT_ADDR;
     char output[16];
+    uint8_t bytes;
     if( argc > 1 )
     {
         addr = (char *)strtol(argv[1], NULL, 16);
     }
-    addr += unassemble( output, addr );
-    printf("%s\n", output);
+    bytes = unassemble( output, addr );
+    printf("%04X %s\n", (int)addr, output);
+    addr += bytes;
     return (int)addr;
 }
 
@@ -188,6 +190,8 @@ int main( )
       { "FILL"    , fill_main       },
       { "M"       , move_main       },
       { "MOVE"    , move_main       },
+      { "U"       , unassemble_main },
+      { "UNASM"   , unassemble_main },
     };
 
     /* Data ******************************************************************/

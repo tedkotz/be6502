@@ -84,5 +84,8 @@ _exit:    CMP     #$00
           JSR     donelib              ; Run destructors
 ;          stp
           BRK
+          .byte   00                   ; optional signature byte for BRK instruction
+
 fail:     JSR     _failLockUp          ; X:A still contains return code
           BRK
+          .byte   00                   ; optional signature byte for BRK instruction

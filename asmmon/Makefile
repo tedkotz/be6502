@@ -9,7 +9,7 @@ ROMIMG=$(EXEPKG).rom.bin
 PKG=$(EXEPKG)
 EXESRCS=main.c vectors.s CLI.c asm.c
 CC=cc65
-CFLAGS=-t none -Os --cpu 65c02 -T -g --include-dir $(INCLUDES)
+CFLAGS=-t none -Osir --cpu 65c02 -T -g --include-dir $(INCLUDES)
 ASM=ca65
 ASMFLAGS=--cpu 65c02 -U -g --include-dir $(INCLUDES)
 LD=ld65
@@ -38,7 +38,7 @@ pkg: $(PKG)
 
 $(EXEPKG): $(LIBPKG) $(EXEOBJS)
 	@echo "Generating $@"
-	$(LD) -C be6502.cfg -m $(MAPFILE) $(EXEOBJS) $(LIBPKG) --lib none.lib -o $@
+	$(LD) -C be6502.cfg -vm -m $(MAPFILE) $(EXEOBJS) $(LIBPKG) --lib none.lib -o $@
 	grep "Segment list:" -A12 $(MAPFILE)
 
 $(ROMIMG): $(EXEPKG)

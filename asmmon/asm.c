@@ -283,38 +283,38 @@ const AsmInst AsmInstLibrary[256] =
 
 typedef struct RegModeDesc
 {
-    uint16_t size;
     const char* desc;
+    uint8_t size;
 } RegModeDesc;
 
 const RegModeDesc RegModeLibrary[] =
 {
-    { 2, "%1%0"      }, // RegMode_Absolute,
-    { 2, "%1%0,X"    }, // RegMode_AbsoluteIndexX,
-    { 2, "(%1%0,X)"  }, // RegMode_AbsoluteIndexXIndirect,
-    { 2, "%1%0,Y"    }, // RegMode_AbsoluteIndexY,
-    { 2, "(%1%0)"    }, // RegMode_AbsoluteIndirect,
-    { 3, "%2%1%0"    }, // RegMode_AbsoluteLong,
-    { 3, "%2%1%0,X"  }, // RegMode_AbsoluteLongIndexX,
-    { 0, "A"         }, // RegMode_Accum,
-    { 2, "%1,%0"     }, // RegMode_BlockMove,
-    { 1, "%0"        }, // RegMode_Direct,
-    { 1, "%0,X"      }, // RegMode_DirectIndexX,
-    { 1, "(%0,X)"    }, // RegMode_DirectIndexXIndirect,
-    { 1, "%0,Y"      }, // RegMode_DirectIndexY,
-    { 1, "(%0)"      }, // RegMode_DirectIndirect,
-    { 1, "(%0),Y"    }, // RegMode_DirectIndirectIndexY,
-    { 1, "[%0]"      }, // RegMode_DirectIndirectLong,
-    { 1, "[%0],Y"    }, // RegMode_DirectIndirectLongIndexY,
-    { 1, "#%0"       }, // RegMode_Immediate,
-    { 0, ""          }, // RegMode_Implied,
-    { 1, "%0,PC"     }, // RegMode_PcRelative,
-    { 2, "%1%0,PC"   }, // RegMode_PcRelativeLong,
-    { 0, ""          }, // RegMode_Stack,
-    { 1, "#%0"       }, // RegMode_StackInterrupt,?
-    { 1, "%0,S"      }, // RegMode_StackRelative,
-    { 1, "(%0,S),Y"  }, // RegMode_StackRelativeIndirectIndexY,
-    { 1, "?%0"       }, // RegMode_WDM,?
+    { "%1%0"      , 2 }, // RegMode_Absolute,
+    { "%1%0,X"    , 2 }, // RegMode_AbsoluteIndexX,
+    { "(%1%0,X)"  , 2 }, // RegMode_AbsoluteIndexXIndirect,
+    { "%1%0,Y"    , 2 }, // RegMode_AbsoluteIndexY,
+    { "(%1%0)"    , 2 }, // RegMode_AbsoluteIndirect,
+    { "%2%1%0"    , 3 }, // RegMode_AbsoluteLong,
+    { "%2%1%0,X"  , 3 }, // RegMode_AbsoluteLongIndexX,
+    { "A"         , 0 }, // RegMode_Accum,
+    { "%1,%0"     , 2 }, // RegMode_BlockMove,
+    { "%0"        , 1 }, // RegMode_Direct,
+    { "%0,X"      , 1 }, // RegMode_DirectIndexX,
+    { "(%0,X)"    , 1 }, // RegMode_DirectIndexXIndirect,
+    { "%0,Y"      , 1 }, // RegMode_DirectIndexY,
+    { "(%0)"      , 1 }, // RegMode_DirectIndirect,
+    { "(%0),Y"    , 1 }, // RegMode_DirectIndirectIndexY,
+    { "[%0]"      , 1 }, // RegMode_DirectIndirectLong,
+    { "[%0],Y"    , 1 }, // RegMode_DirectIndirectLongIndexY,
+    { "#%0"       , 1 }, // RegMode_Immediate,
+    { ""          , 0 }, // RegMode_Implied,
+    { "%0,PC"     , 1 }, // RegMode_PcRelative,
+    { "%1%0,PC"   , 2 }, // RegMode_PcRelativeLong,
+    { ""          , 0 }, // RegMode_Stack,
+    { "#%0"       , 1 }, // RegMode_StackInterrupt,?
+    { "%0,S"      , 1 }, // RegMode_StackRelative,
+    { "(%0,S),Y"  , 1 }, // RegMode_StackRelativeIndirectIndexY,
+    { "?%0"       , 1 }, // RegMode_WDM,?
 };
 
 const char hex2digit[16] =
