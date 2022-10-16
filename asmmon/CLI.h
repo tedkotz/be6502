@@ -11,6 +11,7 @@
 
 /* Includes ******************************************************************/
 #include <stdlib.h>
+#include <inttypes.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -19,8 +20,12 @@ extern "C" {
 
 /* Defines *******************************************************************/
 #define SUCCESS 0
+#define E2BIG (-7)
+#define ENOMSG (-5)
 
 /* Types *********************************************************************/
+typedef uint8_t CLI_size_t;
+
 /**
  * This pointer type defines the function signature expected by CLI callbacks.
  *
@@ -59,7 +64,7 @@ extern const char* (*CLI_getPrompt) (void);
  * @param
  * @return
  */
-void CLI_registerCommandEntryTable ( const CLI_CommandEntry* table, size_t size );
+void CLI_registerCommandEntryTable ( const CLI_CommandEntry* table, CLI_size_t size );
 
 /**
  * [Description]

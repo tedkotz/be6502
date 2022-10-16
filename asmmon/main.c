@@ -62,24 +62,9 @@ int dump_main (int argc, char** argv)
     return (int)addr;
 }
 
-int go_main (int argc, char** argv)
-{
-    int (*addr) (int) = (int(*)(int))DEFAULT_ADDR;
-    int arg = 0;
-    if( argc > 1 )
-    {
-        addr = (int(*)(int))strtol(argv[1], NULL, 16);
-    }
-    if( argc > 2 )
-    {
-        arg = (int)strtol(argv[2], NULL, 16);
-    }
-    return addr(arg);
-}
-
 int enter_main (int argc, char** argv)
 {
-    char* addr;
+    register char* addr;
     char* startAddr;
     int i;
     if( argc < 2 )
@@ -99,32 +84,75 @@ int enter_main (int argc, char** argv)
 
 int fill_main (int argc, char** argv)
 {
-    char* addr;
+    // Fundamentally this is enter and then copy
+    register char* addr;
+    register char* src;
     char* startAddr;
     char* endAddr;
-    char value;
+    int i;
+
     if( argc < 4 )
     {
         return -1;
     }
-    startAddr = addr = (char *)strtol(argv[1], NULL, 16);
+    startAddr = src = addr = (char *)strtol(argv[1], NULL, 16);
     endAddr = (char *)strtol(argv[2], NULL, 16);
-    value = (char)strtol(argv[3], NULL, 16);
 
+    // Enter
+    for( i=3; i<argc; ++i )
+    {
+        *addr++ = (char)strtol(argv[i], NULL, 16);
+    }
+
+    // Copy
     while( addr != endAddr )
     {
-        *addr++ = value;
+        *addr++ = *src++;
     }
-    *addr++ = value;
+    *addr++ = *src++;
 
     printDump( startAddr );
     return (int)addr;
 }
 
+int go_main (int argc, char** argv)
+{
+    int (*addr) (int) = (int(*)(int))DEFAULT_ADDR;
+    int arg = 0;
+    if( argc > 1 )
+    {
+        addr = (int(*)(int))strtol(argv[1], NULL, 16);
+    }
+    if( argc > 2 )
+    {
+        arg = (int)strtol(argv[2], NULL, 16);
+    }
+    return addr(arg);
+}
+
+int hex_main (int argc, char** argv)
+{
+    int returnVal;
+    int arg1 = 0;
+    int arg2 = 0;
+    if( argc > 1 )
+    {
+        arg1 = (int)strtol(argv[1], NULL, 16);
+    }
+    if( argc > 2 )
+    {
+        arg2 = (int)strtol(argv[2], NULL, 16);
+    }
+    returnVal = arg1-arg2;
+    printf("S=%04X D=%04X\n", arg1+arg2, returnVal);
+
+    return returnVal;
+}
+
 int move_main (int argc, char** argv)
 {
-    char* addr;
-    char* dst;
+    register char* dst;
+    register char* src;
     char* startAddr;
     char* endAddr;
     char* destAddr;
@@ -132,25 +160,40 @@ int move_main (int argc, char** argv)
     {
         return -1;
     }
-    startAddr = addr = (char *)strtol(argv[1], NULL, 16);
+    startAddr = (char *)strtol(argv[1], NULL, 16);
     endAddr = (char *)strtol(argv[2], NULL, 16);
-    destAddr = dst = (char *)strtol(argv[3], NULL, 16);
+    destAddr = (char *)strtol(argv[3], NULL, 16);
 
-    while( addr != endAddr )
+    if( (destAddr <= endAddr) && (destAddr > startAddr) )
     {
-        *dst++ = *addr++;
+        // region overlap requires reverse copy
+        src = endAddr;
+        dst = destAddr + (endAddr - startAddr);
+        while( src != startAddr )
+        {
+            *dst-- = *src--;
+        }
     }
-    *dst++ = *addr++;
+    else
+    {
+        src=startAddr;
+        dst=destAddr;
+        while( src != endAddr )
+        {
+            *dst++ = *src++;
+        }
+    }
+    *dst = *src;
 
     printDump( destAddr );
-    return (int)addr;
+    return 1 + (int)destAddr + (int)endAddr - (int)startAddr;
 }
 
 int unassemble_main (int argc, char** argv)
 {
-    static char* addr=(char *)DEFAULT_ADDR;
     char output[16];
     uint8_t bytes;
+    static char* addr=(char *)DEFAULT_ADDR;
     if( argc > 1 )
     {
         addr = (char *)strtol(argv[1], NULL, 16);
@@ -179,27 +222,27 @@ int main( )
 {
     static const CLI_CommandEntry commandEntryTable[] =
     {
-      { "HW"      , hw_main         },
       { "D"       , dump_main       },
       { "DUMP"    , dump_main       },
-      { "G"       , go_main         },
-      { "GO"      , go_main         },
       { "E"       , enter_main      },
       { "ENTER"   , enter_main      },
       { "F"       , fill_main       },
       { "FILL"    , fill_main       },
+      { "G"       , go_main         },
+      { "GO"      , go_main         },
+      { "H"       , hex_main        },
+      { "HEX"     , hex_main        },
       { "M"       , move_main       },
       { "MOVE"    , move_main       },
       { "U"       , unassemble_main },
       { "UNASM"   , unassemble_main },
+      { "HW"      , hw_main         },
     };
 
     /* Data ******************************************************************/
     //char tmp[32];
 
     /* Setup *****************************************************************/
-    cprintf("Hello, World!\r\n");
-
     printDump( (const char*)DEFAULT_ADDR );
 
     CLI_registerCommandEntryTable( commandEntryTable, sizeof(commandEntryTable)/sizeof(commandEntryTable[0]));

@@ -17,17 +17,17 @@ Here is a table of commands in approximately implementation order.
 
 |   |Name       | Command                                     |Notes                                                                                       |Status                                    |
 |---|-----------|---------------------------------------------|--------------------------------------------------------------------------------------------|------------------------------------------|
-| X |dump       | D address                                   |Displays the contents of a portion of memory                                                |                                          |
-| X |enter      | E address [list]                            |Enters data into memory starting at a specified address                                     |                                          |
-| X |move       | M range address                             |Copies the contents of a block of memory                                                    |                                          |
-| X |fill       | F range list                                |Fills a range of memory with specified values                                               |                                          |
-| X |go         | G [address] [parameter]                     |Calls into the specified address storing the parameter in register X:A                      |                                          |
-| X |help       | ?                                           |Displays a list of commands                                                                 |                                          |
-|   |hex        | H value1 value2                             |Performs hexadecimal arithmetic (2's Complement)                                            |                                          |
+| X |dump       | D address                                   |Displays the contents of a portion of memory                                                |Works 4 bytes at a time. Pager support?   |
+| X |enter      | E address [list]                            |Enters data into memory starting at a specified address                                     |Done.                                     |
+| X |move       | M range address                             |Copies the contents of a block of memory                                                    |Done.                                     |
+| X |fill       | F range list                                |Fills a range of memory with specified values                                               |Done.                                     |
+| X |go         | G [address] [parameter]                     |Calls into the specified address storing the parameter in register X:A                      |Done.                                     |
+| X |help       | ?                                           |Displays a list of commands                                                                 |Works, but needs pager support            |
+| X |hex        | H value1 value2                             |Performs hexadecimal arithmetic (2's Complement)                                            |Done.                                     |
 |   |compare    | C range address                             |Compares two portions of memory                                                             |                                          |
 |   |search     | S range list                                |Searches a portion of memory for a specified pattern of one or more byte values             |                                          |
-| X |unassemble | U [range]                                   |Disassembles bytes and displays the corresponding source statements                         |Needs Mnemonic Table                      |
-|   |assemble   | A [address]                                 |Assembles mnemonics                                                                         |Needs Mnemonic Table                      |
+| X |unassemble | U [range]                                   |Disassembles bytes and displays the corresponding source statements                         |Works 1 Inst at a time. Pager support?    |
+|   |assemble   | A [address]                                 |Assembles mnemonics                                                                         |Needs Register Mode Parser                |
 |   |register   | R [register]                                |Displays or alters the contents of one or more registers                                    |Needs to access state/maybe BRK context   |
 |   |trace/step | T [=address] [number]                       |Executes one instruction and then displays CPU state                                        |Needs to access state/maybe BRK context   |
 |   |proceed    | P [=address] [number]                       |Executes a loop, a repeated string instruction, a software interrupt, or a subroutine       |Needs to access state/maybe BRK context   |

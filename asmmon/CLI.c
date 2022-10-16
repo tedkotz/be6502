@@ -34,13 +34,12 @@
 #define F(X) X
 #define strcpy_P strcpy
 #define strncpy_P strncpy
-#define E2BIG (-7)
-#define ENOMSG (-5)
+#define MAX_ARGV_SIZE 16
 
 
 static int returnCode = 0;
 static const CLI_CommandEntry* commandEntryTable=NULL;
-static size_t commandEntryTableSize=0;
+static CLI_size_t commandEntryTableSize=0;
 
 static const char* DEFAULTgetPrompt (void)
 {
@@ -49,7 +48,7 @@ static const char* DEFAULTgetPrompt (void)
 
 const char* (*CLI_getPrompt) (void) = DEFAULTgetPrompt;
 
-void CLI_registerCommandEntryTable ( const CLI_CommandEntry* table, size_t size )
+void CLI_registerCommandEntryTable ( const CLI_CommandEntry* table, CLI_size_t size )
 {
   commandEntryTable = table;
   commandEntryTableSize = size;
@@ -61,7 +60,7 @@ int CLI_getLastReturnCode (void)
 }
 
 
-static bool commandTest( const char* input, const char* testValue )
+static bool commandTest( register const char* input, register const char* testValue )
 {
   while( *testValue != '\0' && *input != '\0')
   {
@@ -74,20 +73,17 @@ static bool commandTest( const char* input, const char* testValue )
   return ( toupper(*input) == *testValue );
 }
 
-static int evaluate ( char* out, size_t out_size, char* in )
+static int evaluate ( register char* out, CLI_size_t out_size, register char* in )
 {
-  char* argv[16];
+  char* argv[MAX_ARGV_SIZE];
+  CLI_size_t i,j;
   int argc=0;
-//  char delim[5];
-//  strcpy_P(delim, (const char*)F(" \t\n\r"));
   char delim[5] = " \t\n\r";
-  char* token;
-  size_t i,j;
-  token=strtok(in, delim);
+  char* token=strtok(in, delim);
 
   while( token != NULL )
   {
-    if (argc >= 16)
+    if (argc >= MAX_ARGV_SIZE)
     {
       printf( F("Syntax Error. Argument list(%d) too long.\n"), argc);
       return -E2BIG;
@@ -132,9 +128,9 @@ static int evaluate ( char* out, size_t out_size, char* in )
 
 int read(int /*fildes*/, char *buf, size_t nbyte);
 
-int read_until(char *buf, size_t nbyte, char term)
+static CLI_size_t read_until(char *buf, CLI_size_t nbyte, char term)
 {
-  size_t index=0;
+  CLI_size_t index=0;
   while( index<nbyte )
   {
       index += read(0, &buf[index], 1);
@@ -148,7 +144,7 @@ int read_until(char *buf, size_t nbyte, char term)
 
 void CLI_loop(void)
 {
-  size_t OutIndex;
+  CLI_size_t OutIndex;
   static char iobuffer[MAX_IO_BUFFER];
   // The Main REPL of the CLI
 
